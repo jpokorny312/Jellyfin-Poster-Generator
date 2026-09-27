@@ -110,24 +110,33 @@ public static class PosterScorer
     /// term (inverse of luminance std-dev in the bottom band), a contrast term measuring
     /// how well this specific logo will read against the band's actual (unaltered)
     /// luminance — <see cref="LogoPosterComposer"/> only blurs the band, it does not
-    /// darken/lighten it — and a smaller resolution term as a tiebreaker.
+    /// darken/lighten it — a smaller resolution term, and a popularity term from TMDb's own
+    /// community rating/vote count.
     /// </summary>
     /// <param name="bandStats">The candidate's bottom-band luminance statistics.</param>
     /// <param name="logoLuminance">The logo's own average luminance (0-255).</param>
     /// <param name="pixelCount">Total pixel count of the candidate (width * height).</param>
     /// <param name="maxPixelCountInSet">The largest pixel count among all candidates being compared, used to normalize.</param>
+    /// <param name="communityRating">The candidate's TMDb community rating (0-10), if any.</param>
+    /// <param name="voteCount">The candidate's TMDb vote count, if any.</param>
     /// <param name="flatnessWeight">Configured weight for the flatness term.</param>
     /// <param name="contrastWeight">Configured weight for the logo-contrast term.</param>
     /// <param name="resolutionWeight">Configured weight for the resolution term.</param>
+    /// <param name="ratingWeight">Configured weight for the community-rating term.</param>
+    /// <param name="voteCountWeight">Configured weight for the (log-scaled) vote-count term.</param>
     /// <returns>A combined score; higher means better suited for this logo.</returns>
     public static double GetScore(
         BandStats bandStats,
         double logoLuminance,
         long pixelCount,
         long maxPixelCountInSet,
+        double? communityRating,
+        int? voteCount,
         double flatnessWeight,
         double contrastWeight,
-        double resolutionWeight)
+        double resolutionWeight,
+        double ratingWeight,
+        double voteCountWeight)
     {
         // Std-dev of luminance across a real photo/poster region rarely exceeds ~110-120,
         // so this normalizes to roughly a 0-1 "flatness" score without needing a second pass.
@@ -144,6 +153,17 @@ public static class PosterScorer
             ? 0.0
             : Math.Clamp((double)pixelCount / maxPixelCountInSet, 0.0, 1.0);
 
-        return (flatness * flatnessWeight) + (contrast * contrastWeight) + (normalizedResolution * resolutionWeight);
+        // Normalized to roughly 0-1, like the other terms, so this nudges a near-tie toward
+        // the more popular/vetted candidate rather than dominating flatness/contrast — e.g.
+        // an obscure, unrated, very-low-resolution upload can end up scoring deceptively
+        // "flat" simply because downscaling blurred whatever text/branding it had baked in.
+        var normalizedRating = Math.Clamp((communityRating ?? 0) / 10.0, 0.0, 1.0);
+        var normalizedVoteCount = Math.Clamp(Math.Log10((voteCount ?? 0) + 1) / 3.0, 0.0, 1.0);
+
+        return (flatness * flatnessWeight)
+            + (contrast * contrastWeight)
+            + (normalizedResolution * resolutionWeight)
+            + (normalizedRating * ratingWeight)
+            + (normalizedVoteCount * voteCountWeight);
     }
 }

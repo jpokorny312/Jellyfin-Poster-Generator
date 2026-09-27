@@ -192,6 +192,24 @@ public class PluginConfiguration : BasePluginConfiguration
     public double ResolutionWeight { get; set; } = 0.2;
 
     /// <summary>
+    /// Gets or sets the weight given to a poster candidate's TMDb community rating (0-10)
+    /// when scoring poster candidates. Normalized to roughly the same 0-1 scale as
+    /// flatness/contrast so it nudges a near-tie toward the more popular/vetted candidate
+    /// rather than dominating — e.g. an obscure, unrated, very-low-resolution upload can
+    /// otherwise end up scoring deceptively "flat" simply because downscaling blurred
+    /// whatever text/branding it had baked in, even though better-reviewed alternatives
+    /// with equal contrast exist.
+    /// </summary>
+    public double PosterRatingWeight { get; set; } = 0.5;
+
+    /// <summary>
+    /// Gets or sets the weight given to a poster candidate's (log-scaled) TMDb vote count.
+    /// Kept modest by default since most legitimate poster uploads have few or no votes —
+    /// this should break near-ties, not penalize an otherwise-good, simply unvoted poster.
+    /// </summary>
+    public double PosterVoteCountWeight { get; set; } = 0.3;
+
+    /// <summary>
     /// Gets or sets the relative resolution difference (as a fraction, e.g. 0.1 = 10%)
     /// below which two backdrop candidates are treated as the same resolution tier, so
     /// rating and vote count decide between them instead of raw pixel count.

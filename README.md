@@ -14,7 +14,10 @@ the Backdrop image.
    "calm" (low contrast/variance) its bottom area is — a busy or high-contrast background
    there would fight with the logo — *and* on how much natural contrast this specific logo
    already has against that band, so a white logo isn't matched with a poster that's too
-   bright, and vice versa. Resolution is a secondary tiebreaker.
+   bright, and vice versa. Resolution and the candidate's own TMDb popularity (community
+   rating/vote count) are secondary tiebreakers — this keeps an obscure, low-resolution
+   upload from winning a near-tie just because downscaling happened to blur away whatever
+   text or branding it had baked in.
 3. Blurs the bottom band of the chosen poster, smoothly cross-fading from the sharp,
    untouched poster above it (no hard sharp-to-blurry seam). The logo is then centered on
    top, scaled to fit within configurable width/height limits. If the chosen poster still
@@ -137,6 +140,7 @@ manually deleting/copying files.
 | Flatness weight | Weight given to how uniform/calm a poster's bottom band is. |
 | Contrast weight | Weight given to the natural contrast between this specific logo and the poster's bottom band — this is what keeps a white logo off a poster that's too bright to begin with. |
 | Resolution weight | Weight given to raw poster resolution, used as a tiebreaker after flatness/contrast. |
+| Poster community rating weight / vote count weight | Weights given to a poster candidate's TMDb popularity, nudging a near-tie toward the more popular/vetted candidate instead of an obscure, unrated, low-resolution upload that happens to score similarly on flatness/contrast. |
 | Max poster band variance | If even the best-scoring candidate's bottom band has a luminance std-dev (0-255) above this, Primary generation is skipped instead of compositing on top of it — usually a sign TMDb mistagged a poster as textless when it actually has baked-in text/branding. Off (`0`) by default; try ~95-110 if you hit this. |
 | Fade band height | Height of the blurred band at the bottom, as a fraction of poster height. Kept fairly small by default (22%) so the blur only touches the bottom portion of the poster. |
 | Blur sigma | Strength of the Gaussian blur applied to the band. |

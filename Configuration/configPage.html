@@ -137,6 +137,22 @@
                             <div class="fieldDescription">Weight given to raw poster resolution, used as a tiebreaker after flatness/contrast.</div>
                         </div>
                         <div class="inputContainer">
+                            <input is="emby-input" type="number" id="PosterRatingWeight" label="Poster community rating weight" step="0.1" />
+                            <div class="fieldDescription">
+                                Weight given to a poster candidate's TMDb community rating. Nudges a near-tie
+                                toward the more popular/vetted candidate instead of an obscure, unrated upload
+                                that happens to score similarly on flatness/contrast (e.g. because downscaling
+                                blurred whatever text it had baked in).
+                            </div>
+                        </div>
+                        <div class="inputContainer">
+                            <input is="emby-input" type="number" id="PosterVoteCountWeight" label="Poster vote count weight" step="0.1" />
+                            <div class="fieldDescription">
+                                Weight given to a poster candidate's (log-scaled) TMDb vote count. Kept modest
+                                by default since most legitimate posters have few or no votes.
+                            </div>
+                        </div>
+                        <div class="inputContainer">
                             <input is="emby-input" type="number" id="MaxPosterBandStdDev" label="Max poster band variance (0-255, 0 = off)" min="0" max="255" step="1" />
                             <div class="fieldDescription">
                                 If even the best-scoring textless poster candidate's bottom band has a
@@ -267,7 +283,7 @@
                     return [
                         'MinLogoWidth', 'LogoRatingWeight', 'LogoVoteCountWeight',
                         'MaxPosterCandidates', 'FlatnessWeight', 'ContrastWeight', 'ResolutionWeight',
-                        'MaxPosterBandStdDev',
+                        'PosterRatingWeight', 'PosterVoteCountWeight', 'MaxPosterBandStdDev',
                         'FadeBandHeightPercent', 'BlurSigma', 'GradientFeatherPercent',
                         'MinRenderContrastGap', 'MaxLocalizedShadowAlpha',
                         'LogoMaxWidthPercent', 'LogoMaxHeightPercent', 'LogoBottomMarginPercent',

@@ -375,9 +375,13 @@ public class PosterLogoComposerTask : IScheduledTask
                 logoLuminance,
                 (long)(c.Info.Width ?? 0) * (c.Info.Height ?? 0),
                 maxPixelCount,
+                c.Info.CommunityRating,
+                c.Info.VoteCount,
                 config.FlatnessWeight,
                 config.ContrastWeight,
-                config.ResolutionWeight))
+                config.ResolutionWeight,
+                config.PosterRatingWeight,
+                config.PosterVoteCountWeight))
             .First();
 
         if (config.MaxPosterBandStdDev > 0 && best.BandStats.StdDev > config.MaxPosterBandStdDev)
