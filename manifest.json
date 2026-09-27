@@ -9,6 +9,14 @@
     "imageUrl": "",
     "versions": [
       {
+        "version": "1.10.2.0",
+        "changelog": "Fixed the logo counterpart of the previous release's fix (\"Monk\" kept failing with UnknownImageFormatException even after 1.10.1.0): poster candidates were already tried one-by-one with a fallback to the next if one failed to decode, but logo selection picked exactly one candidate with no fallback at all, so if TMDb's top-ranked logo for an item happened to be undecodable (SVG or otherwise \u2014 the URL-extension check alone wasn't catching every case), the whole item failed every run with no way to recover. Logo selection now ranks the full fallback order (same language \u2192 language-neutral \u2192 English \u2192 any-language, each tier internally ranked as before) and tries each one in turn, downloading *and* verifying it actually decodes, falling through to the next candidate on any failure instead of giving up on the first bad one.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/jpokorny312/Jellyfin-Poster-Generator/releases/download/v1.10.2.0/jellyfin-plugin-posterlogocomposer_1.10.2.0.zip",
+        "checksum": "5b2370aa79e5b083dbc5d269cf4125b1",
+        "timestamp": "2026-09-27T18:30:43Z"
+      },
+      {
         "version": "1.10.1.0",
         "changelog": "Fixed a crash (\"Failed to compose Primary image\", UnknownImageFormatException) whenever TMDb served an SVG poster or logo candidate \u2014 ImageSharp (used for compositing) has no vector-image decoder and threw on it. SVG candidates are now filtered out before selection/download, at the single point where all TMDb images are gathered, so poster/logo selection never considers one in the first place.",
         "targetAbi": "10.11.0.0",
