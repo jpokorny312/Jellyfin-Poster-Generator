@@ -612,17 +612,13 @@ public class PosterLogoComposerTask : IScheduledTask
             return null;
         }
 
-        var byLanguage = ByLanguage(logos, preferredLanguage);
+        var byLanguage = ByLanguage(logos, preferredLanguage, config);
         if (byLanguage is not null)
         {
             return byLanguage;
         }
 
-        var languageNeutral = logos
-            .Where(l => string.IsNullOrEmpty(l.Language))
-            .OrderByDescending(l => (long)(l.Width ?? 0) * (l.Height ?? 0))
-            .FirstOrDefault();
-
+        var languageNeutral = SelectBestLogo(logos.Where(l => string.IsNullOrEmpty(l.Language)), config);
         if (languageNeutral is not null)
         {
             return languageNeutral;
@@ -632,7 +628,7 @@ public class PosterLogoComposerTask : IScheduledTask
         // try it before giving up, unless it was already the requested language above.
         if (!string.Equals(preferredLanguage, "en", StringComparison.OrdinalIgnoreCase))
         {
-            var english = ByLanguage(logos, "en");
+            var english = ByLanguage(logos, "en", config);
             if (english is not null)
             {
                 return english;
@@ -641,9 +637,7 @@ public class PosterLogoComposerTask : IScheduledTask
 
         if (config.AllowAnyLanguageLogoFallback)
         {
-            return logos
-                .OrderByDescending(l => (long)(l.Width ?? 0) * (l.Height ?? 0))
-                .FirstOrDefault();
+            return SelectBestLogo(logos, config);
         }
 
         _logger.LogDebug(
@@ -658,11 +652,33 @@ public class PosterLogoComposerTask : IScheduledTask
         return null;
     }
 
-    private static RemoteImageInfo? ByLanguage(IReadOnlyList<RemoteImageInfo> logos, string language)
+    private static RemoteImageInfo? ByLanguage(IReadOnlyList<RemoteImageInfo> logos, string language, PluginConfiguration config)
     {
-        return logos
-            .Where(l => string.Equals(l.Language, language, StringComparison.OrdinalIgnoreCase))
-            .OrderByDescending(l => (long)(l.Width ?? 0) * (l.Height ?? 0))
-            .FirstOrDefault();
+        return SelectBestLogo(logos.Where(l => string.Equals(l.Language, language, StringComparison.OrdinalIgnoreCase)), config);
+    }
+
+    /// <summary>
+    /// Picks the best logo from a pool of same-language candidates: resolution is only used
+    /// as a floor (<see cref="PluginConfiguration.MinLogoWidth"/>) and a final tiebreaker,
+    /// not as the deciding factor — among candidates that clear the floor, the one with the
+    /// best community rating/vote count wins. If none clear the floor, the floor is dropped
+    /// rather than the item being skipped, and the same rating-first pick runs over every
+    /// candidate in the pool.
+    /// </summary>
+    private static RemoteImageInfo? SelectBestLogo(IEnumerable<RemoteImageInfo> candidates, PluginConfiguration config)
+    {
+        var pool = candidates as IReadOnlyList<RemoteImageInfo> ?? candidates.ToList();
+        if (pool.Count == 0)
+        {
+            return null;
+        }
+
+        var wideEnough = pool.Where(l => (l.Width ?? 0) >= config.MinLogoWidth).ToList();
+        var scoringPool = wideEnough.Count > 0 ? wideEnough : pool;
+
+        return scoringPool
+            .OrderByDescending(l => BackdropScorer.GetSecondaryScore(l, config.LogoRatingWeight, config.LogoVoteCountWeight))
+            .ThenByDescending(l => (long)(l.Width ?? 0) * (l.Height ?? 0))
+            .First();
     }
 }

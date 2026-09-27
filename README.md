@@ -40,9 +40,11 @@ language); the `PreferredLogoLanguage` setting (default `en`) is only used as a 
 if that can't be determined, or directly if auto-detection is turned off. Selection order
 within the resolved language: a logo in that language → a language-neutral logo → an
 English logo → (only if "Allow any-language logo as a last resort" is on) any available
-logo — in each case picking the highest resolution one available. By default, if none of
-the first three tiers has a match, the item is skipped rather than falling back to an
-unrelated-language logo. The same choice
+logo — in each case picking the best candidate *within that tier* by community rating/vote
+count among logos at least `MinLogoWidth` pixels wide (falling back to rating alone,
+resolution as the final tiebreaker, if none reach that width). Resolution is never the
+deciding factor by itself. By default, if none of the first three tiers has a match, the
+item is skipped rather than falling back to an unrelated-language logo. The same choice
 is used both for the logo composited onto the Primary image and for the standalone Logo
 image.
 
@@ -128,6 +130,8 @@ manually deleting/copying files.
 | Automatically use each library's preferred metadata language for the logo | When on (default), uses each item's library language setting instead of a fixed one. |
 | Fallback / manual logo language | ISO 639-1 code (e.g. `en`); used directly when auto-detection is off, or as a fallback. Falls back further to a language-neutral logo, then an English logo. |
 | Allow any-language logo as a last resort | Off by default: if no logo matches the resolved language, a language-neutral logo, or English, the item is skipped rather than using an unrelated-language logo (e.g. Chinese in a German library). |
+| Minimum logo width | Logo candidates (within the resolved language tier) at or above this width compete on community rating/vote count rather than resolution; resolution only breaks ties. Dropped as a requirement (not a skip) if nothing reaches it. |
+| Logo community rating weight / vote count weight | Weights applied to a logo candidate's rating/(log-scaled) vote count when picking the best one within a language tier. |
 | Max poster candidates | How many textless posters are downloaded/scored per item to find the best fit for the logo. |
 | Flatness weight | Weight given to how uniform/calm a poster's bottom band is. |
 | Contrast weight | Weight given to the natural contrast between this specific logo and the poster's bottom band — this is what keeps a white logo off a poster that's too bright to begin with. |

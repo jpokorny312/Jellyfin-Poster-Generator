@@ -67,6 +67,28 @@ public class PluginConfiguration : BasePluginConfiguration
     public bool AllowAnyLanguageLogoFallback { get; set; }
 
     /// <summary>
+    /// Gets or sets the minimum logo width (in pixels) that is treated as "good enough".
+    /// Among candidates at or above this width, the one with the best community
+    /// rating/vote count wins rather than the highest resolution one; resolution is only
+    /// used as the final tiebreaker. If no candidate reaches this width, the width
+    /// requirement is dropped (rather than skipping the item) and the same rating-first
+    /// selection runs over every candidate.
+    /// </summary>
+    public int MinLogoWidth { get; set; } = 1000;
+
+    /// <summary>
+    /// Gets or sets the weight applied to a logo candidate's community rating (0-10 scale)
+    /// when choosing between candidates that already meet <see cref="MinLogoWidth"/>.
+    /// </summary>
+    public double LogoRatingWeight { get; set; } = 1.0;
+
+    /// <summary>
+    /// Gets or sets the weight applied to a logo candidate's (log-scaled) vote count when
+    /// choosing between candidates that already meet <see cref="MinLogoWidth"/>.
+    /// </summary>
+    public double LogoVoteCountWeight { get; set; } = 1.0;
+
+    /// <summary>
     /// Gets or sets the maximum number of textless poster candidates to download and
     /// analyze per item. Higher values improve the chance of finding a poster where the
     /// logo will be clearly visible but increase provider API and bandwidth usage.

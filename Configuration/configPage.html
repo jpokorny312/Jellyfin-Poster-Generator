@@ -98,6 +98,21 @@
                             </div>
                         </div>
                         <div class="inputContainer">
+                            <input is="emby-input" type="number" id="MinLogoWidth" label="Minimum logo width (px)" min="0" step="1" />
+                            <div class="fieldDescription">
+                                Among logo candidates (in the same language tier) at or above this width, the
+                                best-rated one is chosen instead of simply the highest resolution one;
+                                resolution is only used as the final tiebreaker. If no candidate reaches this
+                                width, the requirement is dropped rather than skipping the item.
+                            </div>
+                        </div>
+                        <div class="inputContainer">
+                            <input is="emby-input" type="number" id="LogoRatingWeight" label="Logo community rating weight" step="0.1" />
+                        </div>
+                        <div class="inputContainer">
+                            <input is="emby-input" type="number" id="LogoVoteCountWeight" label="Logo vote count weight" step="0.1" />
+                        </div>
+                        <div class="inputContainer">
                             <input is="emby-input" type="number" id="MaxPosterCandidates" label="Max poster candidates to analyze" min="1" step="1" />
                             <div class="fieldDescription">
                                 How many textless posters are downloaded and scored per item to find the
@@ -230,6 +245,7 @@
 
                 function numericFieldIds() {
                     return [
+                        'MinLogoWidth', 'LogoRatingWeight', 'LogoVoteCountWeight',
                         'MaxPosterCandidates', 'FlatnessWeight', 'ContrastWeight', 'ResolutionWeight',
                         'FadeBandHeightPercent', 'BlurSigma', 'MaxGradientAlpha', 'GradientFeatherPercent',
                         'LogoMaxWidthPercent', 'LogoMaxHeightPercent', 'LogoBottomMarginPercent',
