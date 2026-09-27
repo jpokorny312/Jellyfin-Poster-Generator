@@ -1,1 +1,21 @@
-[]
+[
+  {
+    "guid": "8a9c0e23-399b-4b99-9aa8-21b11514c6f1",
+    "name": "Poster Logo Composer",
+    "description": "Generates Primary images from a textless TMDb poster with the show/movie logo composited over a blurred (no color tint) fade at the bottom, picking the poster that shows the logo off best. Also saves the logo as the item's Logo image and the best TMDb backdrop as the Backdrop image.",
+    "overview": "Automatically builds logo-on-poster artwork from TMDb, choosing the textless poster best suited for the logo overlay, and fills in matching Logo/Backdrop images.",
+    "owner": "julian",
+    "category": "General",
+    "imageUrl": "",
+    "versions": [
+      {
+        "version": "1.8.0.0",
+        "changelog": "Removed the black/white color tint entirely, based on real-world examples (a Game of Thrones and a Brooklyn Nine-Nine poster) where it turned into a visibly odd-colored, flat rectangle over solid-color/textureless poster backgrounds (bright yellow, near-black) \u2014 there was no texture for the tint to blend into, so even a \"needs-based\", small amount of it stood out badly. Also fixed a sign error in the (now removed) direction logic while investigating. The fade is now blur-only, with no added color; logo/background contrast is handled entirely by poster selection (Contrast weight).",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/jpokorny312/Jellyfin-Poster-Generator/releases/download/v1.8.0.0/jellyfin-plugin-posterlogocomposer_1.8.0.0.zip",
+        "checksum": "62d623ae37e625ea4f9c19f14d406f1e",
+        "timestamp": "2026-09-27T17:05:02Z"
+      }
+    ]
+  }
+]
