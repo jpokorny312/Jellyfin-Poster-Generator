@@ -9,6 +9,14 @@
     "imageUrl": "",
     "versions": [
       {
+        "version": "1.9.1.0",
+        "changelog": "Fixed poor logo/background contrast (e.g. a white logo on a light/bright poster, as seen on American Sniper and The Accountant): poster scoring predicted contrast assuming the band would be darkened toward black by up to \"Max gradient strength\" behind the logo \u2014 a leftover assumption from before 1.8.0.0, which removed that darkening/tint entirely (blur-only fade). The prediction never got updated, so a bright poster could still score as \"good contrast\" for a white logo even though nothing was ever drawn to darken it. Contrast is now scored against the poster's real, unaltered band luminance, matching what actually gets rendered. The now-dead \"Max gradient strength\" setting has been removed.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/jpokorny312/Jellyfin-Poster-Generator/releases/download/v1.9.1.0/jellyfin-plugin-posterlogocomposer_1.9.1.0.zip",
+        "checksum": "1329dafd32386a68ece37480112ddf0e",
+        "timestamp": "2026-09-27T17:34:31Z"
+      },
+      {
         "version": "1.9.0.0",
         "changelog": "Logo selection no longer picks the highest-resolution candidate outright: within each language tier, candidates at or above a configurable minimum width (\"Minimum logo width\", default 1000px) now compete on community rating/vote count instead, with resolution only breaking ties; if nothing reaches that width the requirement is dropped (not the item) and the same rating-first pick runs over every candidate. Applies to the language-matched, language-neutral, English and any-language-fallback tiers alike. New \"Logo community rating weight\" / \"Logo vote count weight\" settings tune it.",
         "targetAbi": "10.11.0.0",
