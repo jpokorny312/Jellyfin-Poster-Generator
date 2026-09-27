@@ -107,6 +107,20 @@ public class PluginConfiguration : BasePluginConfiguration
     public double FadeBandHeightPercent { get; set; } = 0.22;
 
     /// <summary>
+    /// Gets or sets the height of the bottom region, as a fraction of the poster's total
+    /// height, that poster candidates are actually *scored* on for flatness/contrast —
+    /// independent of, and normally taller than, <see cref="FadeBandHeightPercent"/> (which
+    /// controls how much is actually blurred/rendered). Baked-in text/branding positioned
+    /// just above the smaller render band — close enough to visually clash with the
+    /// composited logo, but outside the band ever measured or touched for the render itself
+    /// — would otherwise go undetected: the scorer would see only the plain, genuinely flat
+    /// backdrop below it and rate the candidate as ideal. Widening the scoring window (while
+    /// leaving the actual blur/render extent alone) catches this without changing the look
+    /// of well-behaved posters at all.
+    /// </summary>
+    public double PosterScoreScanHeightPercent { get; set; } = 0.45;
+
+    /// <summary>
     /// Gets or sets the Gaussian blur sigma applied to the fade band.
     /// </summary>
     public double BlurSigma { get; set; } = 12.0;

@@ -352,7 +352,15 @@ public class PosterLogoComposerTask : IScheduledTask
             try
             {
                 using var decoded = Image.Load<Rgba32>(posterBytes);
-                bandStats = PosterScorer.GetBottomBandStats(decoded, config.FadeBandHeightPercent);
+
+                // Scored over a taller region than what actually gets blurred/rendered
+                // (FadeBandHeightPercent): baked-in text/branding positioned just above the
+                // render band — close enough to the logo to visually clash with it, but
+                // outside the band we ever touch or measure for the render itself — would
+                // otherwise go completely undetected (e.g. a title burned in around 60-78%
+                // of the poster's height, with the very bottom left as a plain, genuinely
+                // flat backdrop the scorer would happily rate as ideal).
+                bandStats = PosterScorer.GetBottomBandStats(decoded, config.PosterScoreScanHeightPercent);
             }
             catch (Exception ex)
             {

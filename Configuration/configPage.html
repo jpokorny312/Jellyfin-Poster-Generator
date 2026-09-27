@@ -163,6 +163,17 @@
                                 hit a case like this.
                             </div>
                         </div>
+                        <div class="inputContainer">
+                            <input is="emby-input" type="number" id="PosterScoreScanHeightPercent" label="Poster scoring scan height (0-1, fraction of poster height)" min="0" max="1" step="0.01" />
+                            <div class="fieldDescription">
+                                How much of the poster's bottom region is analyzed when scoring candidates —
+                                independent of, and normally taller than, the fade band height below (which
+                                only controls what actually gets blurred). Catches baked-in text/branding
+                                positioned just above the blurred band, close enough to clash with the
+                                composited logo but outside what gets measured or rendered for the fade
+                                itself, which would otherwise go undetected.
+                            </div>
+                        </div>
                     </div>
 
                     <div class="verticalSection">
@@ -284,6 +295,7 @@
                         'MinLogoWidth', 'LogoRatingWeight', 'LogoVoteCountWeight',
                         'MaxPosterCandidates', 'FlatnessWeight', 'ContrastWeight', 'ResolutionWeight',
                         'PosterRatingWeight', 'PosterVoteCountWeight', 'MaxPosterBandStdDev',
+                        'PosterScoreScanHeightPercent',
                         'FadeBandHeightPercent', 'BlurSigma', 'GradientFeatherPercent',
                         'MinRenderContrastGap', 'MaxLocalizedShadowAlpha',
                         'LogoMaxWidthPercent', 'LogoMaxHeightPercent', 'LogoBottomMarginPercent',
