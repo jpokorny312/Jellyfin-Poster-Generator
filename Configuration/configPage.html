@@ -127,10 +127,9 @@
                         <div class="inputContainer">
                             <input is="emby-input" type="number" id="ContrastWeight" label="Contrast weight" step="0.1" />
                             <div class="fieldDescription">
-                                Weight given to predicted contrast between this specific logo and the
-                                poster's bottom area once the (always identical) fade is applied — this is
-                                what keeps e.g. a white logo off a poster that stays too bright after fading,
-                                without changing the fade's look itself.
+                                Weight given to the actual (unaltered — only blur is ever applied) contrast
+                                between this specific logo and the poster's bottom area — this is what keeps
+                                e.g. a white logo off a poster whose background is already too bright.
                             </div>
                         </div>
                         <div class="inputContainer">
@@ -146,14 +145,6 @@
                         </div>
                         <div class="inputContainer">
                             <input is="emby-input" type="number" id="BlurSigma" label="Blur sigma" min="0" step="0.5" />
-                        </div>
-                        <div class="inputContainer">
-                            <input is="emby-input" type="number" id="MaxGradientAlpha" label="Assumed fade strength for scoring (0-255)" min="0" max="255" step="1" />
-                            <div class="fieldDescription">
-                                No colored tint is drawn onto the image — only the blur. This value is only
-                                used when scoring how well a candidate poster's band will contrast with the
-                                logo (see Contrast weight below); it doesn't change what gets rendered.
-                            </div>
                         </div>
                         <div class="inputContainer">
                             <input is="emby-input" type="number" id="GradientFeatherPercent" label="Blur feather (0-1, fraction of fade band height)" min="0" max="1" step="0.01" />
@@ -247,7 +238,7 @@
                     return [
                         'MinLogoWidth', 'LogoRatingWeight', 'LogoVoteCountWeight',
                         'MaxPosterCandidates', 'FlatnessWeight', 'ContrastWeight', 'ResolutionWeight',
-                        'FadeBandHeightPercent', 'BlurSigma', 'MaxGradientAlpha', 'GradientFeatherPercent',
+                        'FadeBandHeightPercent', 'BlurSigma', 'GradientFeatherPercent',
                         'LogoMaxWidthPercent', 'LogoMaxHeightPercent', 'LogoBottomMarginPercent',
                         'MaxBackdrops', 'BackdropResolutionTierTolerance', 'BackdropRatingWeight',
                         'BackdropVoteCountWeight'

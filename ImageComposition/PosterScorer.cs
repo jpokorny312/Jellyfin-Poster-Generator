@@ -107,23 +107,22 @@ public static class PosterScorer
 
     /// <summary>
     /// Computes a combined score (higher is better) for a poster candidate: a flatness
-    /// term (inverse of luminance std-dev in the bottom band), a contrast term predicting
-    /// how well this specific logo will read against the band once the (always identical)
-    /// fade is applied, and a smaller resolution term as a tiebreaker.
+    /// term (inverse of luminance std-dev in the bottom band), a contrast term measuring
+    /// how well this specific logo will read against the band's actual (unaltered)
+    /// luminance — <see cref="LogoPosterComposer"/> only blurs the band, it does not
+    /// darken/lighten it — and a smaller resolution term as a tiebreaker.
     /// </summary>
     /// <param name="bandStats">The candidate's bottom-band luminance statistics.</param>
     /// <param name="logoLuminance">The logo's own average luminance (0-255).</param>
-    /// <param name="maxGradientAlpha">The configured fade strength (0-255) applied behind the logo.</param>
     /// <param name="pixelCount">Total pixel count of the candidate (width * height).</param>
     /// <param name="maxPixelCountInSet">The largest pixel count among all candidates being compared, used to normalize.</param>
     /// <param name="flatnessWeight">Configured weight for the flatness term.</param>
-    /// <param name="contrastWeight">Configured weight for the predicted logo-contrast term.</param>
+    /// <param name="contrastWeight">Configured weight for the logo-contrast term.</param>
     /// <param name="resolutionWeight">Configured weight for the resolution term.</param>
     /// <returns>A combined score; higher means better suited for this logo.</returns>
     public static double GetScore(
         BandStats bandStats,
         double logoLuminance,
-        double maxGradientAlpha,
         long pixelCount,
         long maxPixelCountInSet,
         double flatnessWeight,
@@ -134,14 +133,12 @@ public static class PosterScorer
         // so this normalizes to roughly a 0-1 "flatness" score without needing a second pass.
         var flatness = 1.0 - Math.Clamp(bandStats.StdDev / 120.0, 0.0, 1.0);
 
-        // The fade always darkens toward black by up to maxGradientAlpha right behind the
-        // logo; predict the resulting band luminance there and compare it against the
-        // logo's own luminance. A poster whose band stays close to the logo's own
-        // brightness even after darkening (e.g. an already-dark band under a dark logo)
-        // is penalized in favor of one with a wider gap (e.g. a bright band, dark logo).
-        var alphaFraction = Math.Clamp(maxGradientAlpha / 255.0, 0.0, 1.0);
-        var predictedLuminance = bandStats.Mean * (1.0 - alphaFraction);
-        var contrast = Math.Abs(predictedLuminance - logoLuminance) / 255.0;
+        // The band is only blurred, never darkened/lightened, so its actual mean luminance
+        // (not some hypothetical faded value) is what the logo will actually sit against.
+        // A poster whose band luminance is already close to the logo's own (e.g. a bright
+        // band under a bright/white logo) is penalized in favor of one with a wide natural
+        // gap (e.g. a bright band, dark logo).
+        var contrast = Math.Abs(bandStats.Mean - logoLuminance) / 255.0;
 
         var normalizedResolution = maxPixelCountInSet <= 0
             ? 0.0

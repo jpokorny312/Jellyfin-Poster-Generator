@@ -136,11 +136,9 @@ manually deleting/copying files.
 | Flatness weight | Weight given to how uniform/calm a poster's bottom band is. |
 | Contrast weight | Weight given to the natural contrast between this specific logo and the poster's bottom band — this is what keeps a white logo off a poster that's too bright to begin with. |
 | Resolution weight | Weight given to raw poster resolution, used as a tiebreaker after flatness/contrast. |
-| Fade band height | Height of the blurred band at the bottom, as a fraction of poster height. Kept fairly small by default (22%) so the fade only touches the bottom portion of the poster. |
-| Blur sigma | Strength of the Gaussian blur applied to the fade band. |
-| Target contrast gap | The fade tries to reach at least this much luminance gap (0-255) between the logo and the band. If the pairing already has enough natural contrast, no fade is applied at all. |
-| Max gradient strength | A ceiling (0-255 alpha) on how strong/opaque the fade is ever allowed to get, even if more would be needed to reach the target contrast gap. |
-| Gradient feather | How much of the fade band is used to smoothly ramp up to full strength around the logo (on all four sides), instead of an abrupt transition. |
+| Fade band height | Height of the blurred band at the bottom, as a fraction of poster height. Kept fairly small by default (22%) so the blur only touches the bottom portion of the poster. |
+| Blur sigma | Strength of the Gaussian blur applied to the band. |
+| Blur feather | How much of the band is used to smoothly ramp the blur up to full strength before the logo's top edge, instead of an abrupt sharp-to-blurry transition. |
 | Max logo width / height | Size limits for the logo, as fractions of poster width / poster height (independent of the fade band height — the logo may extend above the band). |
 | Logo bottom margin | Space below the logo, as a fraction of poster height. |
 | Max backdrops to keep | How many Backdrop images to keep. Existing Backdrops are replaced with up to this many best-scoring candidates every run, so the count stays fixed instead of growing forever. |

@@ -349,7 +349,6 @@ public class PosterLogoComposerTask : IScheduledTask
             .OrderByDescending(c => PosterScorer.GetScore(
                 c.BandStats,
                 logoLuminance,
-                config.MaxGradientAlpha,
                 (long)(c.Info.Width ?? 0) * (c.Info.Height ?? 0),
                 maxPixelCount,
                 config.FlatnessWeight,

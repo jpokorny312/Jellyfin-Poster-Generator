@@ -96,10 +96,12 @@ public class PluginConfiguration : BasePluginConfiguration
     public int MaxPosterCandidates { get; set; } = 12;
 
     /// <summary>
-    /// Gets or sets the height of the bottom "fade" band that gets blurred and, if needed,
-    /// darkened/lightened to make the logo stand out, as a fraction of the poster's total
-    /// height. Kept fairly small by default so the fade only touches the bottom portion of
-    /// the poster instead of a large chunk of the artwork.
+    /// Gets or sets the height of the bottom band that gets blurred to make the logo stand
+    /// out, as a fraction of the poster's total height. No color/brightness change is
+    /// applied to it — only blur — so its readability against the logo depends entirely on
+    /// picking a poster whose band already has good natural contrast (see
+    /// <see cref="ContrastWeight"/>). Kept fairly small by default so the blur only touches
+    /// the bottom portion of the poster instead of a large chunk of the artwork.
     /// </summary>
     public double FadeBandHeightPercent { get; set; } = 0.22;
 
@@ -109,21 +111,9 @@ public class PluginConfiguration : BasePluginConfiguration
     public double BlurSigma { get; set; } = 12.0;
 
     /// <summary>
-    /// Gets or sets the fade strength (0-255) assumed when scoring how well a candidate
-    /// poster's band will contrast with a given logo (see <see cref="ContrastWeight"/>).
-    /// No colored tint is actually drawn onto the image anymore — a black/white overlay,
-    /// even applied only where "needed", turned into a visible, oddly-colored block
-    /// whenever the band was a flat, saturated area with no texture to blend it into (e.g.
-    /// a solid-color poster background). Getting good contrast is handled entirely by
-    /// picking a poster whose band already contrasts well with the logo; this value only
-    /// tunes how that scoring predicts things, not what gets rendered.
-    /// </summary>
-    public int MaxGradientAlpha { get; set; } = 140;
-
-    /// <summary>
     /// Gets or sets how much of the fade band (as a fraction of the band's height) is
-    /// used to smoothly ramp the gradient up to full strength before it reaches the
-    /// logo's top edge, instead of an abrupt transition.
+    /// used to smoothly ramp the blur up to full strength before it reaches the logo's
+    /// top edge, instead of an abrupt sharp-to-blurry transition.
     /// </summary>
     public double GradientFeatherPercent { get; set; } = 0.25;
 
@@ -152,11 +142,10 @@ public class PluginConfiguration : BasePluginConfiguration
     public double FlatnessWeight { get; set; } = 1.0;
 
     /// <summary>
-    /// Gets or sets the weight given to predicted logo/background contrast when scoring
-    /// poster candidates: how far apart the band's luminance (after the fixed, always
-    /// identical fade is applied) and the specific logo's own luminance are predicted to
-    /// be. This is what avoids e.g. a white logo landing on a poster whose band is still
-    /// bright after the fade, without needing to change the fade itself per logo.
+    /// Gets or sets the weight given to actual logo/background contrast when scoring
+    /// poster candidates: how far apart the band's real (unaltered — only blur is ever
+    /// applied to it) luminance and the specific logo's own luminance are. This is what
+    /// avoids e.g. a white logo landing on a poster whose band is already too bright.
     /// </summary>
     public double ContrastWeight { get; set; } = 1.5;
 
