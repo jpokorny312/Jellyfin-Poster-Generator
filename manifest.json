@@ -9,6 +9,14 @@
     "imageUrl": "",
     "versions": [
       {
+        "version": "1.11.1.0",
+        "changelog": "Added a full per-candidate scoring breakdown at Debug log level: for every textless poster candidate considered for an item, logs its resolution, language, TMDb rating/vote count, bottom-band mean/std-dev, and final combined score, ranked best-first. Enable Debug logging for the \"Jellyfin.Plugin.PosterLogoComposer\" namespace (add it to the \"Serilog:MinimumLevel:Override\" section of logging.json and restart) to see exactly why a given poster won or lost for a specific item, without needing to query TMDb separately.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/jpokorny312/Jellyfin-Poster-Generator/releases/download/v1.11.1.0/jellyfin-plugin-posterlogocomposer_1.11.1.0.zip",
+        "checksum": "b16f98facc80c0bf1d31b248ccf60b1d",
+        "timestamp": "2026-09-27T19:59:14Z"
+      },
+      {
         "version": "1.11.0.0",
         "changelog": "Poster scoring now factors in TMDb popularity: added \"Poster community rating weight\" and \"Poster vote count weight\" settings (normalized to the same roughly 0-1 scale as flatness/contrast, so they nudge a near-tie rather than dominate). Root cause: the Sherlock poster with a baked-in Kurdish title and \"K SERIES\" watermark kept winning even after the logo fix and the (opt-in, off-by-default) variance floor, because poster selection never looked at popularity at all \u2014 only flatness/contrast/resolution. Checking the actual TMDb candidates confirmed the offending poster was very low resolution and had by far the lowest popularity of the available options, with several other candidates offering equal contrast; a low-resolution upload can score deceptively \"flat\" simply because downscaling blurred whatever text it had baked in, which flatness alone can't tell apart from a genuinely calm background. Popularity now breaks exactly this kind of tie.",
         "targetAbi": "10.11.0.0",
