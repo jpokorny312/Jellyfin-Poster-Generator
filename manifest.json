@@ -9,6 +9,14 @@
     "imageUrl": "",
     "versions": [
       {
+        "version": "1.10.1.0",
+        "changelog": "Fixed a crash (\"Failed to compose Primary image\", UnknownImageFormatException) whenever TMDb served an SVG poster or logo candidate \u2014 ImageSharp (used for compositing) has no vector-image decoder and threw on it. SVG candidates are now filtered out before selection/download, at the single point where all TMDb images are gathered, so poster/logo selection never considers one in the first place.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/jpokorny312/Jellyfin-Poster-Generator/releases/download/v1.10.1.0/jellyfin-plugin-posterlogocomposer_1.10.1.0.zip",
+        "checksum": "3a70b38bc2b7443007adaaadd153d671",
+        "timestamp": "2026-09-27T18:13:42Z"
+      },
+      {
         "version": "1.10.0.0",
         "changelog": "Added a last-resort, localized contrast backdrop: even with correct poster selection (1.9.1.0), some titles (e.g. American Sniper) simply have no textless TMDb poster candidate with good natural contrast for the logo, so the best available pick can still read weakly (thin serif strokes blending into a bright sky, etc.). If the poster actually chosen still falls short of a minimum logo/band luminance gap (new \"Minimum contrast gap\" setting, default 70), a soft, heavily-feathered backdrop is now drawn as a fallback \u2014 but scoped tightly to the logo's own footprint (with padding) rather than the whole band, and capped by a new \"Max localized backdrop strength\" setting. A well-matched pairing (the common case) gets no backdrop at all, and even a poorly-matched one never turns into the old flat, hard-edged rectangle over a solid-color background, since it's small, centered on the logo, and fades out well before the band's edges. Set \"Minimum contrast gap\" to 0 to disable and rely purely on poster selection.",
         "targetAbi": "10.11.0.0",
