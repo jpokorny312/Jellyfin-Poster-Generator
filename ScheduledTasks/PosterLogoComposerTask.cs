@@ -369,20 +369,45 @@ public class PosterLogoComposerTask : IScheduledTask
         }
 
         var maxPixelCount = candidates.Max(c => (long)(c.Info.Width ?? 0) * (c.Info.Height ?? 0));
-        var best = candidates
-            .OrderByDescending(c => PosterScorer.GetScore(
-                c.BandStats,
+        var scored = candidates
+            .Select(c => (
+                Candidate: c,
+                Score: PosterScorer.GetScore(
+                    c.BandStats,
+                    logoLuminance,
+                    (long)(c.Info.Width ?? 0) * (c.Info.Height ?? 0),
+                    maxPixelCount,
+                    c.Info.CommunityRating,
+                    c.Info.VoteCount,
+                    config.FlatnessWeight,
+                    config.ContrastWeight,
+                    config.ResolutionWeight,
+                    config.PosterRatingWeight,
+                    config.PosterVoteCountWeight)))
+            .OrderByDescending(x => x.Score)
+            .ToList();
+
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            // Full transparency into why a candidate won/lost, without needing to hit
+            // TMDb's API separately — enable Debug logging for this plugin's namespace to
+            // see it per item.
+            var breakdown = string.Join(
+                " | ",
+                scored.Select(x =>
+                    $"{x.Candidate.Info.Width}x{x.Candidate.Info.Height} lang={(string.IsNullOrEmpty(x.Candidate.Info.Language) ? "(none)" : x.Candidate.Info.Language)} " +
+                    $"rating={x.Candidate.Info.CommunityRating?.ToString("F1") ?? "-"} votes={x.Candidate.Info.VoteCount?.ToString() ?? "-"} " +
+                    $"bandMean={x.Candidate.BandStats.Mean:F0} bandStdDev={x.Candidate.BandStats.StdDev:F1} score={x.Score:F3} url={x.Candidate.Info.Url}"));
+            _logger.LogDebug(
+                "{ItemName} ({ItemId}): {Count} textless poster candidate(s) scored, best-first (logo luminance {LogoLuminance:F0}): {Breakdown}",
+                item.Name,
+                item.Id,
+                scored.Count,
                 logoLuminance,
-                (long)(c.Info.Width ?? 0) * (c.Info.Height ?? 0),
-                maxPixelCount,
-                c.Info.CommunityRating,
-                c.Info.VoteCount,
-                config.FlatnessWeight,
-                config.ContrastWeight,
-                config.ResolutionWeight,
-                config.PosterRatingWeight,
-                config.PosterVoteCountWeight))
-            .First();
+                breakdown);
+        }
+
+        var best = scored[0].Candidate;
 
         if (config.MaxPosterBandStdDev > 0 && best.BandStats.StdDev > config.MaxPosterBandStdDev)
         {

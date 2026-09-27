@@ -123,6 +123,15 @@ manually deleting/copying files.
    The task has no default trigger (it downloads and processes a lot of images), so run it
    manually or add a schedule from the scheduled tasks page.
 
+## Troubleshooting
+
+To see exactly why a given poster candidate won or lost for a specific item (resolution,
+language, TMDb rating/vote count, bottom-band stats, final score — ranked best-first),
+enable Debug logging for this plugin's namespace: add
+`"Jellyfin.Plugin.PosterLogoComposer": "Debug"` to the `Serilog:MinimumLevel:Override`
+section of your Jellyfin `logging.json`, restart the server, and re-run the scheduled task.
+The breakdown is logged per item at Debug level.
+
 ## Configuration
 
 | Setting | Description |
