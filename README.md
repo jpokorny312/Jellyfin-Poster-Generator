@@ -73,9 +73,36 @@ Built against Jellyfin.Controller/Jellyfin.Model 10.11.11. If your server is on 
 `net8.0` and the package versions to `10.10.7`, and `targetAbi`/`framework` in
 `meta.json` accordingly (then publish with `-f net8.0`).
 
-## Install
+## Install (recommended: via plugin repository)
 
-1. Build the plugin (see above).
+Every push to `main` that bumps the version in `meta.json` is built, packaged and
+published as a GitHub Release by `.github/workflows/release.yml`, which also updates
+`manifest.json` at the repository root. Adding that manifest as a plugin repository in
+Jellyfin means future updates show up on the normal Plugins → Catalog page — no more
+manually deleting/copying files.
+
+1. **Dashboard → Plugins → Repositories → Add Repository.**
+2. Repository name: anything you like (e.g. `Poster Logo Composer`).
+3. Repository URL:
+   ```
+   https://raw.githubusercontent.com/jpokorny312/Jellyfin-Poster-Generator/main/manifest.json
+   ```
+4. Save, then go to **Dashboard → Plugins → Catalog**, find **Poster Logo Composer**
+   under your repository, and install it. From then on, new releases appear as a normal
+   update on the Plugins page.
+
+### Releasing a new version
+
+1. Bump `version` in `meta.json` and prepend the new entry to `changelog`.
+2. Commit and push to `main`.
+3. The workflow builds, tags (`vX.Y.Z.W`), creates a GitHub Release with the plugin zip
+   attached, and commits the updated `manifest.json` back to `main` — nothing else to do
+   manually.
+
+## Install (manual, fallback)
+
+1. Build the plugin (see above) or download the zip from the
+   [latest release](../../releases/latest).
 2. Create a folder named `Poster Logo Composer` inside your Jellyfin server's plugin
    directory.
 3. Copy `Jellyfin.Plugin.PosterLogoComposer.dll`, `SixLabors.ImageSharp.dll` and

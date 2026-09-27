@@ -1,0 +1,15 @@
+# .NET build output
+bin/
+obj/
+
+# Packaged plugin zips produced locally (CI publishes these as release assets instead)
+*.zip
+
+# IDE
+.vs/
+.vscode/
+*.user
+
+# OS cruft
+.DS_Store
+Thumbs.db

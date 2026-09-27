@@ -1,0 +1,107 @@
+name: Build and Release Plugin
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "meta.json"
+      - "**/*.cs"
+      - "**/*.csproj"
+      - "Configuration/**"
+  workflow_dispatch: {}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read version from meta.json
+        id: meta
+        run: |
+          VERSION=$(jq -r .version meta.json)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Skip if this version was already released
+        id: tagcheck
+        run: |
+          if git rev-parse "v${{ steps.meta.outputs.version }}" >/dev/null 2>&1; then
+            echo "Tag v${{ steps.meta.outputs.version }} already exists, nothing to do."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup .NET
+        if: steps.tagcheck.outputs.skip == 'false'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Publish plugin
+        if: steps.tagcheck.outputs.skip == 'false'
+        run: |
+          dotnet publish Jellyfin.Plugin.PosterLogoComposer.csproj \
+            -c Release -f net9.0 --no-self-contained -o publish
+
+      - name: Package release zip
+        if: steps.tagcheck.outputs.skip == 'false'
+        id: package
+        run: |
+          ZIP_NAME="jellyfin-plugin-posterlogocomposer_${{ steps.meta.outputs.version }}.zip"
+          mkdir -p package
+          # Only ship what Jellyfin doesn't already provide itself (see README "Build").
+          cp publish/Jellyfin.Plugin.PosterLogoComposer.dll package/
+          cp publish/SixLabors.ImageSharp.dll package/
+          (cd package && zip -r "../$ZIP_NAME" .)
+          echo "zip_name=$ZIP_NAME" >> "$GITHUB_OUTPUT"
+          echo "checksum=$(md5sum "$ZIP_NAME" | cut -d ' ' -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Extract release notes
+        if: steps.tagcheck.outputs.skip == 'false'
+        id: notes
+        run: |
+          python3 - <<'EOF' > release_notes.txt
+          import json, re
+          meta = json.load(open("meta.json", encoding="utf-8"))
+          parts = [p for p in re.split(r"(?m)^- ", meta["changelog"].strip()) if p.strip()]
+          print(parts[0].strip() if parts else meta["changelog"].strip())
+          EOF
+
+      - name: Create tag
+        if: steps.tagcheck.outputs.skip == 'false'
+        run: |
+          git tag "v${{ steps.meta.outputs.version }}"
+          git push origin "v${{ steps.meta.outputs.version }}"
+
+      - name: Create GitHub Release
+        if: steps.tagcheck.outputs.skip == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.meta.outputs.version }}
+          name: v${{ steps.meta.outputs.version }}
+          body_path: release_notes.txt
+          files: ${{ steps.package.outputs.zip_name }}
+
+      - name: Update repository manifest
+        if: steps.tagcheck.outputs.skip == 'false'
+        run: |
+          python3 .github/scripts/update_manifest.py \
+            --meta meta.json \
+            --manifest manifest.json \
+            --checksum "${{ steps.package.outputs.checksum }}" \
+            --source-url "https://github.com/${{ github.repository }}/releases/download/v${{ steps.meta.outputs.version }}/${{ steps.package.outputs.zip_name }}"
+
+      - name: Commit manifest.json
+        if: steps.tagcheck.outputs.skip == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add manifest.json
+          git commit -m "Update repository manifest for v${{ steps.meta.outputs.version }}"
+          git push origin HEAD:main
