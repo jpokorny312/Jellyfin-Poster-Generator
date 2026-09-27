@@ -121,6 +121,29 @@ public class PluginConfiguration : BasePluginConfiguration
     public double PosterScoreScanHeightPercent { get; set; } = 0.45;
 
     /// <summary>
+    /// Gets or sets how much of the poster's bottom region (as a fraction of height) is
+    /// scanned for an isolated baked-in text/logo spike — see
+    /// <see cref="ImageComposition.PosterScorer.GetPeakLocalVariance"/>. Kept taller than
+    /// <see cref="PosterScoreScanHeightPercent"/> by default: because this signal looks for
+    /// a localized anomaly rather than an aggregate average, scanning a larger portion
+    /// doesn't dilute it the way it would the plain flatness/contrast terms, so it can
+    /// afford to look further up the poster for text positioned higher than either fixed
+    /// band would otherwise catch.
+    /// </summary>
+    public double TextSpikeScanHeightPercent { get; set; } = 0.65;
+
+    /// <summary>
+    /// Gets or sets the weight (penalty) applied when scoring poster candidates for a
+    /// detected isolated text/logo spike (see
+    /// <see cref="ImageComposition.PosterScorer.GetPeakLocalVariance"/>) — subtracted from
+    /// the candidate's score, unlike the other (additive) weights. Kept assertive by
+    /// default since this is meant to reliably override an otherwise deceptively "flat"
+    /// candidate whose baked-in title was simply diluted by surrounding empty space. Set to
+    /// 0 to disable this check entirely.
+    /// </summary>
+    public double TextSpikeWeight { get; set; } = 2.5;
+
+    /// <summary>
     /// Gets or sets the Gaussian blur sigma applied to the fade band.
     /// </summary>
     public double BlurSigma { get; set; } = 12.0;

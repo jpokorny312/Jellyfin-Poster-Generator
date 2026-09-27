@@ -349,6 +349,7 @@ public class PosterLogoComposerTask : IScheduledTask
             }
 
             PosterScorer.BandStats bandStats;
+            double peakLocalVariance;
             try
             {
                 using var decoded = Image.Load<Rgba32>(posterBytes);
@@ -361,6 +362,12 @@ public class PosterLogoComposerTask : IScheduledTask
                 // of the poster's height, with the very bottom left as a plain, genuinely
                 // flat backdrop the scorer would happily rate as ideal).
                 bandStats = PosterScorer.GetBottomBandStats(decoded, config.PosterScoreScanHeightPercent);
+
+                // Independently, hunt for an isolated text/logo spike over a taller region
+                // still — this signal isn't diluted by scanning more (see
+                // GetPeakLocalVariance), so it can catch a title positioned higher up than
+                // either fixed band would.
+                peakLocalVariance = PosterScorer.GetPeakLocalVariance(decoded, config.TextSpikeScanHeightPercent);
             }
             catch (Exception ex)
             {
@@ -368,7 +375,7 @@ public class PosterLogoComposerTask : IScheduledTask
                 continue;
             }
 
-            candidates.Add(new PosterCandidate(posterInfo, posterBytes, bandStats));
+            candidates.Add(new PosterCandidate(posterInfo, posterBytes, bandStats, peakLocalVariance));
         }
 
         if (candidates.Count == 0)
@@ -391,7 +398,9 @@ public class PosterLogoComposerTask : IScheduledTask
                     config.ContrastWeight,
                     config.ResolutionWeight,
                     config.PosterRatingWeight,
-                    config.PosterVoteCountWeight)))
+                    config.PosterVoteCountWeight,
+                    c.PeakLocalVariance,
+                    config.TextSpikeWeight)))
             .OrderByDescending(x => x.Score)
             .ToList();
 
@@ -405,7 +414,7 @@ public class PosterLogoComposerTask : IScheduledTask
                 scored.Select(x =>
                     $"{x.Candidate.Info.Width}x{x.Candidate.Info.Height} lang={(string.IsNullOrEmpty(x.Candidate.Info.Language) ? "(none)" : x.Candidate.Info.Language)} " +
                     $"rating={x.Candidate.Info.CommunityRating?.ToString("F1") ?? "-"} votes={x.Candidate.Info.VoteCount?.ToString() ?? "-"} " +
-                    $"bandMean={x.Candidate.BandStats.Mean:F0} bandStdDev={x.Candidate.BandStats.StdDev:F1} score={x.Score:F3} url={x.Candidate.Info.Url}"));
+                    $"bandMean={x.Candidate.BandStats.Mean:F0} bandStdDev={x.Candidate.BandStats.StdDev:F1} textSpike={x.Candidate.PeakLocalVariance:F1} score={x.Score:F3} url={x.Candidate.Info.Url}"));
             _logger.LogDebug(
                 "{ItemName} ({ItemId}): {Count} textless poster candidate(s) scored, best-first (logo luminance {LogoLuminance:F0}): {Breakdown}",
                 item.Name,

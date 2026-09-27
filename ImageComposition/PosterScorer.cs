@@ -68,6 +68,78 @@ public static class PosterScorer
     }
 
     /// <summary>
+    /// Detects an isolated baked-in text/logo row anywhere within the bottom
+    /// <paramref name="scanHeightPercent"/> of the poster, independent of exactly where it
+    /// sits vertically. A single aggregate mean/std-dev over one fixed band (see
+    /// <see cref="GetBottomBandStats"/>) misses this whenever the text either sits just
+    /// outside that band, or is surrounded by enough flat area within it to dilute the
+    /// average — both observed in practice (a Kurdish title sitting just above a 22%-tall
+    /// band; a minimalist all-black poster with its title positioned right at the edge of
+    /// an even 45%-tall band). This instead divides the scan region into thin horizontal
+    /// strips, computes each strip's own std-dev, and returns how far the single busiest
+    /// strip (the peak) stands out above the group's median. A genuinely busy/photographic
+    /// poster has variance spread fairly evenly across strips (small peak-vs-median gap);
+    /// isolated text on an otherwise calm background produces one or a few dramatically
+    /// higher strips against an otherwise near-zero baseline (large gap) — a signal that
+    /// stays meaningful even when scanning a generous portion of the poster, unlike a plain
+    /// aggregate which gets washed out by surrounding flat area the more of it is included.
+    /// </summary>
+    /// <param name="poster">The decoded poster image.</param>
+    /// <param name="scanHeightPercent">Height of the scanned region, as a fraction of total image height.</param>
+    /// <param name="stripCount">How many horizontal strips the scanned region is divided into.</param>
+    /// <returns>The peak strip's std-dev minus the median strip's std-dev (0 if no spike stands out).</returns>
+    public static double GetPeakLocalVariance(Image<Rgba32> poster, double scanHeightPercent, int stripCount = 30)
+    {
+        var scanHeight = Math.Max(1, (int)(poster.Height * scanHeightPercent));
+        var startY = Math.Max(0, poster.Height - scanHeight);
+        var stripHeight = Math.Max(1, scanHeight / stripCount);
+
+        var sums = new double[stripCount];
+        var sumSquares = new double[stripCount];
+        var counts = new long[stripCount];
+
+        poster.ProcessPixelRows(accessor =>
+        {
+            for (var y = startY; y < accessor.Height; y += SampleStep)
+            {
+                var stripIndex = Math.Min(stripCount - 1, (y - startY) / stripHeight);
+                var row = accessor.GetRowSpan(y);
+                for (var x = 0; x < row.Length; x += SampleStep)
+                {
+                    var pixel = row[x];
+                    var luminance = (0.299 * pixel.R) + (0.587 * pixel.G) + (0.114 * pixel.B);
+                    sums[stripIndex] += luminance;
+                    sumSquares[stripIndex] += luminance * luminance;
+                    counts[stripIndex]++;
+                }
+            }
+        });
+
+        var stripStdDevs = new System.Collections.Generic.List<double>(stripCount);
+        for (var i = 0; i < stripCount; i++)
+        {
+            if (counts[i] == 0)
+            {
+                continue;
+            }
+
+            var stripMean = sums[i] / counts[i];
+            var stripVariance = (sumSquares[i] / counts[i]) - (stripMean * stripMean);
+            stripStdDevs.Add(Math.Sqrt(Math.Max(stripVariance, 0)));
+        }
+
+        if (stripStdDevs.Count == 0)
+        {
+            return 0;
+        }
+
+        stripStdDevs.Sort();
+        var median = stripStdDevs[stripStdDevs.Count / 2];
+        var peak = stripStdDevs[^1];
+        return Math.Max(0, peak - median);
+    }
+
+    /// <summary>
     /// Computes the alpha-weighted average luminance (0-255) of a logo's visible pixels,
     /// ignoring near-fully-transparent ones so the large transparent margin typical of a
     /// logo PNG doesn't skew the result.
@@ -124,6 +196,8 @@ public static class PosterScorer
     /// <param name="resolutionWeight">Configured weight for the resolution term.</param>
     /// <param name="ratingWeight">Configured weight for the community-rating term.</param>
     /// <param name="voteCountWeight">Configured weight for the (log-scaled) vote-count term.</param>
+    /// <param name="peakLocalVariance">The candidate's peak-vs-median strip variance from <see cref="GetPeakLocalVariance"/>.</param>
+    /// <param name="textSpikeWeight">Configured weight (penalty) for the text-spike term.</param>
     /// <returns>A combined score; higher means better suited for this logo.</returns>
     public static double GetScore(
         BandStats bandStats,
@@ -136,7 +210,9 @@ public static class PosterScorer
         double contrastWeight,
         double resolutionWeight,
         double ratingWeight,
-        double voteCountWeight)
+        double voteCountWeight,
+        double peakLocalVariance,
+        double textSpikeWeight)
     {
         // Std-dev of luminance across a real photo/poster region rarely exceeds ~110-120,
         // so this normalizes to roughly a 0-1 "flatness" score without needing a second pass.
@@ -160,10 +236,18 @@ public static class PosterScorer
         var normalizedRating = Math.Clamp((communityRating ?? 0) / 10.0, 0.0, 1.0);
         var normalizedVoteCount = Math.Clamp(Math.Log10((voteCount ?? 0) + 1) / 3.0, 0.0, 1.0);
 
+        // A pronounced isolated variance spike — text/a logo sitting on an otherwise calm
+        // background, wherever exactly it is — is a strong, independent signal that this
+        // candidate isn't really textless, so it's subtracted rather than folded into
+        // flatness (which a diluting expanse of flat area around the spike can still leave
+        // looking deceptively good).
+        var normalizedTextSpike = Math.Clamp(peakLocalVariance / 120.0, 0.0, 1.0);
+
         return (flatness * flatnessWeight)
             + (contrast * contrastWeight)
             + (normalizedResolution * resolutionWeight)
             + (normalizedRating * ratingWeight)
-            + (normalizedVoteCount * voteCountWeight);
+            + (normalizedVoteCount * voteCountWeight)
+            - (normalizedTextSpike * textSpikeWeight);
     }
 }

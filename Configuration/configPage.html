@@ -174,6 +174,26 @@
                                 itself, which would otherwise go undetected.
                             </div>
                         </div>
+                        <div class="inputContainer">
+                            <input is="emby-input" type="number" id="TextSpikeScanHeightPercent" label="Text-spike scan height (0-1, fraction of poster height)" min="0" max="1" step="0.01" />
+                            <div class="fieldDescription">
+                                How much of the poster's bottom region is scanned for an isolated baked-in
+                                text/logo spike (thin horizontal strips are compared against each other).
+                                Kept taller than the scoring scan height above, since this signal looks for a
+                                localized anomaly rather than an average, so a larger scan doesn't dilute it —
+                                it can afford to look further up the poster for a title positioned higher than
+                                either fixed band would otherwise catch.
+                            </div>
+                        </div>
+                        <div class="inputContainer">
+                            <input is="emby-input" type="number" id="TextSpikeWeight" label="Text-spike penalty weight (0 = off)" step="0.1" />
+                            <div class="fieldDescription">
+                                How strongly a detected text/logo spike counts against a poster candidate.
+                                Kept assertive by default so it reliably overrides an otherwise deceptively
+                                "flat" candidate whose baked-in title was simply diluted by surrounding empty
+                                space.
+                            </div>
+                        </div>
                     </div>
 
                     <div class="verticalSection">
@@ -295,7 +315,7 @@
                         'MinLogoWidth', 'LogoRatingWeight', 'LogoVoteCountWeight',
                         'MaxPosterCandidates', 'FlatnessWeight', 'ContrastWeight', 'ResolutionWeight',
                         'PosterRatingWeight', 'PosterVoteCountWeight', 'MaxPosterBandStdDev',
-                        'PosterScoreScanHeightPercent',
+                        'PosterScoreScanHeightPercent', 'TextSpikeScanHeightPercent', 'TextSpikeWeight',
                         'FadeBandHeightPercent', 'BlurSigma', 'GradientFeatherPercent',
                         'MinRenderContrastGap', 'MaxLocalizedShadowAlpha',
                         'LogoMaxWidthPercent', 'LogoMaxHeightPercent', 'LogoBottomMarginPercent',
