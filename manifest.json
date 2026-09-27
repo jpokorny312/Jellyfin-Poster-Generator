@@ -9,6 +9,14 @@
     "imageUrl": "",
     "versions": [
       {
+        "version": "1.11.0.0",
+        "changelog": "Poster scoring now factors in TMDb popularity: added \"Poster community rating weight\" and \"Poster vote count weight\" settings (normalized to the same roughly 0-1 scale as flatness/contrast, so they nudge a near-tie rather than dominate). Root cause: the Sherlock poster with a baked-in Kurdish title and \"K SERIES\" watermark kept winning even after the logo fix and the (opt-in, off-by-default) variance floor, because poster selection never looked at popularity at all \u2014 only flatness/contrast/resolution. Checking the actual TMDb candidates confirmed the offending poster was very low resolution and had by far the lowest popularity of the available options, with several other candidates offering equal contrast; a low-resolution upload can score deceptively \"flat\" simply because downscaling blurred whatever text it had baked in, which flatness alone can't tell apart from a genuinely calm background. Popularity now breaks exactly this kind of tie.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/jpokorny312/Jellyfin-Poster-Generator/releases/download/v1.11.0.0/jellyfin-plugin-posterlogocomposer_1.11.0.0.zip",
+        "checksum": "0c27e493e6b2c92a837a19061332de7e",
+        "timestamp": "2026-09-27T18:41:05Z"
+      },
+      {
         "version": "1.10.2.0",
         "changelog": "Fixed the logo counterpart of the previous release's fix (\"Monk\" kept failing with UnknownImageFormatException even after 1.10.1.0): poster candidates were already tried one-by-one with a fallback to the next if one failed to decode, but logo selection picked exactly one candidate with no fallback at all, so if TMDb's top-ranked logo for an item happened to be undecodable (SVG or otherwise \u2014 the URL-extension check alone wasn't catching every case), the whole item failed every run with no way to recover. Logo selection now ranks the full fallback order (same language \u2192 language-neutral \u2192 English \u2192 any-language, each tier internally ranked as before) and tries each one in turn, downloading *and* verifying it actually decodes, falling through to the next candidate on any failure instead of giving up on the first bad one.",
         "targetAbi": "10.11.0.0",
