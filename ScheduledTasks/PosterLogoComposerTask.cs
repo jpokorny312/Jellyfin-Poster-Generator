@@ -356,6 +356,26 @@ public class PosterLogoComposerTask : IScheduledTask
                 config.ResolutionWeight))
             .First();
 
+        if (config.MaxPosterBandStdDev > 0 && best.BandStats.StdDev > config.MaxPosterBandStdDev)
+        {
+            // A very high luminance std-dev in the bottom band, even for the best-scoring
+            // candidate, is usually a sign of baked-in text/logos/busy artwork — most often
+            // a poster TMDb has mistagged as textless (language == null) when it actually
+            // isn't (e.g. a foreign-streaming-service release image with its own title and
+            // branding burned in). Better to skip than to composite our logo on top of
+            // someone else's.
+            _logger.LogInformation(
+                "{ItemName} ({ItemId}): best textless poster candidate's bottom band still looks too busy " +
+                "(luminance stddev {StdDev:F1} > {Max}), likely baked-in text/branding mistagged as textless " +
+                "on TMDb; skipping Primary generation rather than compositing on top of it. Consider flagging " +
+                "the image on TMDb, or raise/disable \"Max poster band variance\" to change this.",
+                item.Name,
+                item.Id,
+                best.BandStats.StdDev,
+                config.MaxPosterBandStdDev);
+            return false;
+        }
+
         byte[] composed;
         try
         {
@@ -601,7 +621,30 @@ public class PosterLogoComposerTask : IScheduledTask
                 item.Id);
         }
 
-        return results;
+        // SVG logos/posters occasionally show up among TMDb's results, but ImageSharp (the
+        // library used to decode and composite images) has no vector-image decoder and
+        // throws UnknownImageFormatException on them. Drop them here, at the single point
+        // where every image type is gathered, so poster/logo selection never even considers
+        // a candidate that would later crash the compose step.
+        var rasterResults = results.Where(r => !string.Equals(GetUrlExtension(r.Url), ".svg", StringComparison.OrdinalIgnoreCase)).ToList();
+        if (rasterResults.Count != results.Count)
+        {
+            _logger.LogDebug(
+                "{ItemName} ({ItemId}): skipped {SkippedCount} SVG image candidate(s) that ImageSharp cannot decode",
+                item.Name,
+                item.Id,
+                results.Count - rasterResults.Count);
+        }
+
+        return rasterResults;
+    }
+
+    private static string GetUrlExtension(string url)
+    {
+        var queryStart = url.IndexOfAny(new[] { '?', '#' });
+        var path = queryStart >= 0 ? url[..queryStart] : url;
+        var lastDot = path.LastIndexOf('.');
+        return lastDot >= 0 ? path[lastDot..] : string.Empty;
     }
 
     private RemoteImageInfo? SelectLogo(IReadOnlyList<RemoteImageInfo> logos, string preferredLanguage, PluginConfiguration config, BaseItem item)

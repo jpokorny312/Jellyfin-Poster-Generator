@@ -139,6 +139,21 @@ public class PluginConfiguration : BasePluginConfiguration
     public int MaxLocalizedShadowAlpha { get; set; } = 180;
 
     /// <summary>
+    /// Gets or sets a hard ceiling (0-255) on the bottom band's luminance std-dev for even
+    /// the best-scoring textless poster candidate. TMDb occasionally mistags a poster as
+    /// textless (<c>language == null</c>) when it actually has baked-in text/logos/branding
+    /// (e.g. a foreign streaming service's own release image) — <see cref="FlatnessWeight"/>
+    /// already prefers calmer candidates during selection, but with nothing better
+    /// available the "best of a bad set" can still be unusable. If the chosen candidate's
+    /// std-dev exceeds this value, Primary generation is skipped for that item entirely
+    /// rather than compositing the logo onto a busy/textful background. Set to 0 to disable
+    /// and never skip (the historical behavior). Off by default since a sensible cutoff
+    /// depends on how busy your library's legitimate posters normally are; try ~95-110 if
+    /// you hit a case like this.
+    /// </summary>
+    public double MaxPosterBandStdDev { get; set; }
+
+    /// <summary>
     /// Gets or sets the maximum logo width, as a fraction of the poster width.
     /// </summary>
     public double LogoMaxWidthPercent { get; set; } = 0.62;

@@ -136,6 +136,17 @@
                             <input is="emby-input" type="number" id="ResolutionWeight" label="Resolution weight" step="0.1" />
                             <div class="fieldDescription">Weight given to raw poster resolution, used as a tiebreaker after flatness/contrast.</div>
                         </div>
+                        <div class="inputContainer">
+                            <input is="emby-input" type="number" id="MaxPosterBandStdDev" label="Max poster band variance (0-255, 0 = off)" min="0" max="255" step="1" />
+                            <div class="fieldDescription">
+                                If even the best-scoring textless poster candidate's bottom band has a
+                                luminance std-dev above this, Primary generation is skipped for that item
+                                instead of compositing on top of it — usually a sign TMDb mistagged a poster
+                                as textless when it actually has baked-in text/branding (e.g. from a foreign
+                                streaming service's own release image). Off (0) by default; try ~95-110 if you
+                                hit a case like this.
+                            </div>
+                        </div>
                     </div>
 
                     <div class="verticalSection">
@@ -256,6 +267,7 @@
                     return [
                         'MinLogoWidth', 'LogoRatingWeight', 'LogoVoteCountWeight',
                         'MaxPosterCandidates', 'FlatnessWeight', 'ContrastWeight', 'ResolutionWeight',
+                        'MaxPosterBandStdDev',
                         'FadeBandHeightPercent', 'BlurSigma', 'GradientFeatherPercent',
                         'MinRenderContrastGap', 'MaxLocalizedShadowAlpha',
                         'LogoMaxWidthPercent', 'LogoMaxHeightPercent', 'LogoBottomMarginPercent',
