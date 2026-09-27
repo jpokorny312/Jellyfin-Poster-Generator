@@ -200,23 +200,47 @@ public class PosterLogoComposerTask : IScheduledTask
         {
             var logoCandidates = tmdbImages.Where(r => r.Type == ImageType.Logo).ToList();
             var logoLanguage = GetLogoLanguage(item, config);
-            chosenLogoInfo = SelectLogo(logoCandidates, logoLanguage, config, item);
+            var rankedLogos = RankLogoCandidates(logoCandidates, logoLanguage, config, item);
 
-            if (chosenLogoInfo is null)
+            // Try candidates best-first, falling through to the next one whenever a
+            // download fails or the bytes turn out to be undecodable (e.g. an SVG or any
+            // other format ImageSharp can't handle) — Monk's TMDb logo previously crashed
+            // Primary generation entirely because the single top-ranked candidate happened
+            // to be one ImageSharp couldn't load, with no fallback to try another.
+            foreach (var candidate in rankedLogos)
             {
-                _logger.LogDebug("No TMDb logo available for {ItemName} ({ItemId})", item.Name, item.Id);
-            }
-            else
-            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                byte[] candidateBytes;
                 try
                 {
-                    var logoUrl = GetOriginalResolutionUrl(chosenLogoInfo.Url, config);
-                    logoBytes = await httpClient.GetByteArrayAsync(logoUrl, cancellationToken).ConfigureAwait(false);
+                    var candidateUrl = GetOriginalResolutionUrl(candidate.Url, config);
+                    candidateBytes = await httpClient.GetByteArrayAsync(candidateUrl, cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogDebug(ex, "Failed to download logo for {ItemName} ({ItemId})", item.Name, item.Id);
+                    _logger.LogDebug(ex, "Failed to download logo candidate {LogoUrl} for {ItemName} ({ItemId})", candidate.Url, item.Name, item.Id);
+                    continue;
                 }
+
+                try
+                {
+                    using var probe = Image.Load<Rgba32>(candidateBytes);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Logo candidate {LogoUrl} for {ItemName} ({ItemId}) could not be decoded; trying next candidate if any", candidate.Url, item.Name, item.Id);
+                    continue;
+                }
+
+                chosenLogoInfo = candidate;
+                logoBytes = candidateBytes;
+                break;
+            }
+
+            if (chosenLogoInfo is null)
+            {
+                _logger.LogDebug("No usable TMDb logo available for {ItemName} ({ItemId})", item.Name, item.Id);
             }
         }
 
@@ -647,80 +671,103 @@ public class PosterLogoComposerTask : IScheduledTask
         return lastDot >= 0 ? path[lastDot..] : string.Empty;
     }
 
-    private RemoteImageInfo? SelectLogo(IReadOnlyList<RemoteImageInfo> logos, string preferredLanguage, PluginConfiguration config, BaseItem item)
+    /// <summary>
+    /// Builds the full fallback order of logo candidates to try, best-first: an exact
+    /// language match, then language-neutral, then English (unless that was already the
+    /// requested language), each tier internally ranked by <see cref="RankLogos"/>. Returns
+    /// every candidate across those tiers (not just the top one) so the caller can fall
+    /// through to the next-best if a candidate turns out to be undecodable (e.g. an SVG, or
+    /// any other asset ImageSharp can't handle) instead of failing the item outright. Only
+    /// once none of those tiers has *any* candidate at all does this fall back to every
+    /// remaining logo regardless of language, and only if
+    /// <see cref="PluginConfiguration.AllowAnyLanguageLogoFallback"/> is on — a candidate
+    /// merely failing to decode is not the same as "no matching-language logo exists" and
+    /// must not trigger an unrelated-language fallback.
+    /// </summary>
+    private List<RemoteImageInfo> RankLogoCandidates(IReadOnlyList<RemoteImageInfo> logos, string preferredLanguage, PluginConfiguration config, BaseItem item)
     {
-        if (logos.Count == 0)
+        var ordered = new List<RemoteImageInfo>();
+        var seenUrls = new HashSet<string>(StringComparer.Ordinal);
+
+        void AddTier(IEnumerable<RemoteImageInfo> tier)
         {
-            return null;
+            foreach (var candidate in RankLogos(tier, config))
+            {
+                if (seenUrls.Add(candidate.Url))
+                {
+                    ordered.Add(candidate);
+                }
+            }
         }
 
-        var byLanguage = ByLanguage(logos, preferredLanguage, config);
-        if (byLanguage is not null)
-        {
-            return byLanguage;
-        }
+        AddTier(logos.Where(l => string.Equals(l.Language, preferredLanguage, StringComparison.OrdinalIgnoreCase)));
+        AddTier(logos.Where(l => string.IsNullOrEmpty(l.Language)));
 
-        var languageNeutral = SelectBestLogo(logos.Where(l => string.IsNullOrEmpty(l.Language)), config);
-        if (languageNeutral is not null)
-        {
-            return languageNeutral;
-        }
-
-        // English is the most broadly legible, commonly-available fallback on TMDb —
-        // try it before giving up, unless it was already the requested language above.
+        // English is the most broadly legible, commonly-available fallback on TMDb — try it
+        // before giving up, unless it was already the requested language above.
         if (!string.Equals(preferredLanguage, "en", StringComparison.OrdinalIgnoreCase))
         {
-            var english = ByLanguage(logos, "en", config);
-            if (english is not null)
-            {
-                return english;
-            }
+            AddTier(logos.Where(l => string.Equals(l.Language, "en", StringComparison.OrdinalIgnoreCase)));
+        }
+
+        if (ordered.Count > 0)
+        {
+            return ordered;
         }
 
         if (config.AllowAnyLanguageLogoFallback)
         {
-            return SelectBestLogo(logos, config);
+            AddTier(logos);
+            return ordered;
         }
 
-        _logger.LogDebug(
-            "{ItemName} ({ItemId}): no logo in \"{Language}\", language-neutral, or English was found among " +
-            "{Count} candidate(s); skipping rather than using an unrelated-language logo (e.g. Chinese in a " +
-            "German library). Enable \"Allow any-language logo as a last resort\" to change this.",
-            item.Name,
-            item.Id,
-            preferredLanguage,
-            logos.Count);
+        if (logos.Count > 0)
+        {
+            _logger.LogDebug(
+                "{ItemName} ({ItemId}): no logo in \"{Language}\", language-neutral, or English was found among " +
+                "{Count} candidate(s); skipping rather than using an unrelated-language logo (e.g. Chinese in a " +
+                "German library). Enable \"Allow any-language logo as a last resort\" to change this.",
+                item.Name,
+                item.Id,
+                preferredLanguage,
+                logos.Count);
+        }
 
-        return null;
-    }
-
-    private static RemoteImageInfo? ByLanguage(IReadOnlyList<RemoteImageInfo> logos, string language, PluginConfiguration config)
-    {
-        return SelectBestLogo(logos.Where(l => string.Equals(l.Language, language, StringComparison.OrdinalIgnoreCase)), config);
+        return ordered;
     }
 
     /// <summary>
-    /// Picks the best logo from a pool of same-language candidates: resolution is only used
-    /// as a floor (<see cref="PluginConfiguration.MinLogoWidth"/>) and a final tiebreaker,
-    /// not as the deciding factor — among candidates that clear the floor, the one with the
-    /// best community rating/vote count wins. If none clear the floor, the floor is dropped
-    /// rather than the item being skipped, and the same rating-first pick runs over every
-    /// candidate in the pool.
+    /// Ranks a pool of logo candidates best-first: resolution is only used as a floor
+    /// (<see cref="PluginConfiguration.MinLogoWidth"/>) and a tiebreaker, not the deciding
+    /// factor — among candidates that clear the floor, the best community rating/vote count
+    /// wins. Candidates below the floor are appended as a last-resort tail (ranked by
+    /// resolution) rather than dropped outright, so a download/decode failure on every
+    /// "good enough" candidate still has somewhere to fall back to.
     /// </summary>
-    private static RemoteImageInfo? SelectBestLogo(IEnumerable<RemoteImageInfo> candidates, PluginConfiguration config)
+    private static List<RemoteImageInfo> RankLogos(IEnumerable<RemoteImageInfo> candidates, PluginConfiguration config)
     {
         var pool = candidates as IReadOnlyList<RemoteImageInfo> ?? candidates.ToList();
         if (pool.Count == 0)
         {
-            return null;
+            return new List<RemoteImageInfo>();
         }
 
         var wideEnough = pool.Where(l => (l.Width ?? 0) >= config.MinLogoWidth).ToList();
-        var scoringPool = wideEnough.Count > 0 ? wideEnough : pool;
+        var usingFloor = wideEnough.Count > 0;
+        var primaryPool = usingFloor ? wideEnough : pool;
 
-        return scoringPool
+        var ranked = primaryPool
             .OrderByDescending(l => BackdropScorer.GetSecondaryScore(l, config.LogoRatingWeight, config.LogoVoteCountWeight))
             .ThenByDescending(l => (long)(l.Width ?? 0) * (l.Height ?? 0))
-            .First();
+            .ToList();
+
+        if (usingFloor)
+        {
+            ranked.AddRange(
+                pool.Where(l => (l.Width ?? 0) < config.MinLogoWidth)
+                    .OrderByDescending(l => (long)(l.Width ?? 0) * (l.Height ?? 0)));
+        }
+
+        return ranked;
     }
 }
