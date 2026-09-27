@@ -9,6 +9,14 @@
     "imageUrl": "",
     "versions": [
       {
+        "version": "1.12.0.0",
+        "changelog": "Found and fixed the actual Sherlock root cause using the new Debug breakdown plus a visual check of the winning poster: the candidate scored a near-perfect flatness (luminance std-dev 2.9) because its baked-in Kurdish title sits *above* the 22%-tall band that's actually blurred/scored \u2014 the region we measured really was flat, since the title lives just outside it, with only plain black below. Neither the popularity weighting (1.11.0.0) nor the (opt-in) variance floor (1.10.1.0) could ever catch this, because both were only ever looking at the same too-short window. Poster scoring now analyzes a separately configurable, normally-taller region (\"Poster scoring scan height\", default 45% of poster height) than what actually gets blurred/rendered (\"Fade band height\", still 22%) \u2014 so baked-in text/branding positioned closer to (but outside) the render band now counts against a candidate, while the rendered look of well-behaved posters is unaffected.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/jpokorny312/Jellyfin-Poster-Generator/releases/download/v1.12.0.0/jellyfin-plugin-posterlogocomposer_1.12.0.0.zip",
+        "checksum": "0159a7a1b6a42b740281935dcce471ba",
+        "timestamp": "2026-09-27T20:14:00Z"
+      },
+      {
         "version": "1.11.1.0",
         "changelog": "Added a full per-candidate scoring breakdown at Debug log level: for every textless poster candidate considered for an item, logs its resolution, language, TMDb rating/vote count, bottom-band mean/std-dev, and final combined score, ranked best-first. Enable Debug logging for the \"Jellyfin.Plugin.PosterLogoComposer\" namespace (add it to the \"Serilog:MinimumLevel:Override\" section of logging.json and restart) to see exactly why a given poster won or lost for a specific item, without needing to query TMDb separately.",
         "targetAbi": "10.11.0.0",
