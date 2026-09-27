@@ -9,6 +9,14 @@
     "imageUrl": "",
     "versions": [
       {
+        "version": "1.10.0.0",
+        "changelog": "Added a last-resort, localized contrast backdrop: even with correct poster selection (1.9.1.0), some titles (e.g. American Sniper) simply have no textless TMDb poster candidate with good natural contrast for the logo, so the best available pick can still read weakly (thin serif strokes blending into a bright sky, etc.). If the poster actually chosen still falls short of a minimum logo/band luminance gap (new \"Minimum contrast gap\" setting, default 70), a soft, heavily-feathered backdrop is now drawn as a fallback \u2014 but scoped tightly to the logo's own footprint (with padding) rather than the whole band, and capped by a new \"Max localized backdrop strength\" setting. A well-matched pairing (the common case) gets no backdrop at all, and even a poorly-matched one never turns into the old flat, hard-edged rectangle over a solid-color background, since it's small, centered on the logo, and fades out well before the band's edges. Set \"Minimum contrast gap\" to 0 to disable and rely purely on poster selection.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/jpokorny312/Jellyfin-Poster-Generator/releases/download/v1.10.0.0/jellyfin-plugin-posterlogocomposer_1.10.0.0.zip",
+        "checksum": "f559acec95b140c00942ebec5216b779",
+        "timestamp": "2026-09-27T18:08:08Z"
+      },
+      {
         "version": "1.9.1.0",
         "changelog": "Fixed poor logo/background contrast (e.g. a white logo on a light/bright poster, as seen on American Sniper and The Accountant): poster scoring predicted contrast assuming the band would be darkened toward black by up to \"Max gradient strength\" behind the logo \u2014 a leftover assumption from before 1.8.0.0, which removed that darkening/tint entirely (blur-only fade). The prediction never got updated, so a bright poster could still score as \"good contrast\" for a white logo even though nothing was ever drawn to darken it. Contrast is now scored against the poster's real, unaltered band luminance, matching what actually gets rendered. The now-dead \"Max gradient strength\" setting has been removed.",
         "targetAbi": "10.11.0.0",
