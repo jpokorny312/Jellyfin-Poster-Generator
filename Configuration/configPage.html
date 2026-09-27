@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Poster Logo Composer</title>
+</head>
+<body>
+    <div id="PosterLogoComposerConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-checkbox,emby-select">
+        <div data-role="content">
+            <div class="content-primary">
+                <form id="PosterLogoComposerConfigForm">
+                    <div class="verticalSection">
+                        <h2>Poster Logo Composer</h2>
+                        <p>
+                            Builds a Primary image per movie/series from a textless TMDb poster with the
+                            item's logo composited over a blurred (no color tint) fade at the bottom. Among the
+                            available textless posters, the one whose bottom area is calmest (best suited
+                            to show the logo clearly) is chosen automatically. The same logo is also saved
+                            as the item's Logo image, and the highest resolution, best rated TMDb backdrop
+                            is saved as the Backdrop image. Run the "Compose Poster Logos" scheduled task
+                            (under Scheduled Tasks &gt; Library) to apply this to your library. Requires the
+                            TMDb metadata provider to be enabled.
+                        </p>
+                    </div>
+
+                    <div class="verticalSection">
+                        <h3>Item Types</h3>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="ProcessMovies" />
+                                <span>Movies</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="ProcessSeries" />
+                                <span>Series</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="ReplaceExistingImages" />
+                                <span>Replace existing images</span>
+                            </label>
+                            <div class="fieldDescription">
+                                If disabled, only images that are currently missing (Primary, Logo, Backdrop
+                                are each checked independently) are filled in.
+                            </div>
+                        </div>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="SaveLogoImage" />
+                                <span>Also save the logo as the item's Logo image</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="SaveBackdropImage" />
+                                <span>Also select and save a Backdrop image</span>
+                            </label>
+                            <div class="fieldDescription">
+                                Picks the highest resolution TMDb backdrop, using community rating and vote
+                                count as a tiebreaker among similarly sized candidates.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="verticalSection">
+                        <h3>Poster &amp; Logo Selection</h3>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="AutoDetectLogoLanguage" />
+                                <span>Automatically use each library's preferred metadata language for the logo</span>
+                            </label>
+                            <div class="fieldDescription">
+                                Uses the library's own "Preferred metadata language" setting (falling back to
+                                the server's default language). If that can't be determined, the language
+                                below is used instead.
+                            </div>
+                        </div>
+                        <div class="inputContainer">
+                            <input is="emby-input" type="text" id="PreferredLogoLanguage" label="Fallback / manual logo language (ISO 639-1)" />
+                            <div class="fieldDescription">
+                                E.g. "en". Used directly when automatic detection above is off, or as a
+                                fallback when a library has no language configured. Falls back further to a
+                                language-neutral logo, then an English logo.
+                            </div>
+                        </div>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="AllowAnyLanguageLogoFallback" />
+                                <span>Allow any-language logo as a last resort</span>
+                            </label>
+                            <div class="fieldDescription">
+                                Off by default: if no logo matches the resolved language, a language-neutral
+                                logo, or English, the item is skipped instead of using a logo in an unrelated
+                                language (e.g. a Chinese logo turning up in a German library) just because it
+                                had the highest resolution among what was left.
+                            </div>
+                        </div>
+                        <div class="inputContainer">
+                            <input is="emby-input" type="number" id="MaxPosterCandidates" label="Max poster candidates to analyze" min="1" step="1" />
+                            <div class="fieldDescription">
+                                How many textless posters are downloaded and scored per item to find the
+                                one where the logo will be most visible. Higher values give better results
+                                but use more bandwidth and time.
+                            </div>
+                        </div>
+                        <div class="inputContainer">
+                            <input is="emby-input" type="number" id="FlatnessWeight" label="Flatness weight" step="0.1" />
+                            <div class="fieldDescription">Weight given to how calm/uniform a poster's bottom area is.</div>
+                        </div>
+                        <div class="inputContainer">
+                            <input is="emby-input" type="number" id="ContrastWeight" label="Contrast weight" step="0.1" />
+                            <div class="fieldDescription">
+                                Weight given to predicted contrast between this specific logo and the
+                                poster's bottom area once the (always identical) fade is applied — this is
+                                what keeps e.g. a white logo off a poster that stays too bright after fading,
+                                without changing the fade's look itself.
+                            </div>
+                        </div>
+                        <div class="inputContainer">
+                            <input is="emby-input" type="number" id="ResolutionWeight" label="Resolution weight" step="0.1" />
+                            <div class="fieldDescription">Weight given to raw poster resolution, used as a tiebreaker after flatness/contrast.</div>
+                        </div>
+                    </div>
+
+                    <div class="verticalSection">
+                        <h3>Fade &amp; Logo Geometry</h3>
+                        <div class="inputContainer">
+                            <input is="emby-input" type="number" id="FadeBandHeightPercent" label="Fade band height (0-1, fraction of poster height)" min="0" max="1" step="0.01" />
+                        </div>
+                        <div class="inputContainer">
+                            <input is="emby-input" type="number" id="BlurSigma" label="Blur sigma" min="0" step="0.5" />
+                        </div>
+                        <div class="inputContainer">
+                            <input is="emby-input" type="number" id="MaxGradientAlpha" label="Assumed fade strength for scoring (0-255)" min="0" max="255" step="1" />
+                            <div class="fieldDescription">
+                                No colored tint is drawn onto the image — only the blur. This value is only
+                                used when scoring how well a candidate poster's band will contrast with the
+                                logo (see Contrast weight below); it doesn't change what gets rendered.
+                            </div>
+                        </div>
+                        <div class="inputContainer">
+                            <input is="emby-input" type="number" id="GradientFeatherPercent" label="Blur feather (0-1, fraction of fade band height)" min="0" max="1" step="0.01" />
+                            <div class="fieldDescription">
+                                How gradually the blur transitions in from the sharp poster above the fade
+                                band, instead of an abrupt sharp-to-blurry cut.
+                            </div>
+                        </div>
+                        <div class="inputContainer">
+                            <input is="emby-input" type="number" id="LogoMaxWidthPercent" label="Max logo width (0-1, fraction of poster width)" min="0" max="1" step="0.01" />
+                        </div>
+                        <div class="inputContainer">
+                            <input is="emby-input" type="number" id="LogoMaxHeightPercent" label="Max logo height (0-1, fraction of poster height)" min="0" max="1" step="0.01" />
+                            <div class="fieldDescription">
+                                Independent of the fade band height, so shrinking the fade band doesn't
+                                automatically shrink the logo. The logo may extend above the fade band.
+                            </div>
+                        </div>
+                        <div class="inputContainer">
+                            <input is="emby-input" type="number" id="LogoBottomMarginPercent" label="Logo bottom margin (0-1, fraction of poster height)" min="0" max="1" step="0.01" />
+                        </div>
+                    </div>
+
+                    <div class="verticalSection">
+                        <h3>Backdrop Selection</h3>
+                        <div class="inputContainer">
+                            <input is="emby-input" type="number" id="MaxBackdrops" label="Max backdrops to keep" min="1" step="1" />
+                            <div class="fieldDescription">
+                                Every time the Backdrop image is (re)generated, existing Backdrop images are
+                                replaced with up to this many best-scoring TMDb candidates, so the count
+                                stays fixed instead of growing with every run.
+                            </div>
+                        </div>
+                        <div class="inputContainer">
+                            <input is="emby-input" type="number" id="BackdropResolutionTierTolerance" label="Resolution tier tolerance (0-1)" min="0" max="1" step="0.01" />
+                            <div class="fieldDescription">
+                                Backdrop candidates whose pixel count differs by less than this fraction are
+                                treated as equal resolution; rating and vote count then decide between them.
+                            </div>
+                        </div>
+                        <div class="inputContainer">
+                            <input is="emby-input" type="number" id="BackdropRatingWeight" label="Community rating weight" step="0.1" />
+                        </div>
+                        <div class="inputContainer">
+                            <input is="emby-input" type="number" id="BackdropVoteCountWeight" label="Vote count weight" step="0.1" />
+                        </div>
+                    </div>
+
+                    <div class="verticalSection">
+                        <h3>Image Quality</h3>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="UseOriginalTmdbResolution" />
+                                <span>Always download TMDb images at original (full) resolution</span>
+                            </label>
+                            <div class="fieldDescription">
+                                Rewrites TMDb image URLs to request the "original" size before downloading.
+                                Disable this only if you want to keep whatever (possibly downscaled) size the
+                                TMDb provider itself hands back.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+                            <span>Save</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <script>
+            (function () {
+                var PluginConfig = {
+                    UniqueId: '8a9c0e23-399b-4b99-9aa8-21b11514c6f1'
+                };
+
+                function checkboxFieldIds() {
+                    return [
+                        'ProcessMovies', 'ProcessSeries', 'ReplaceExistingImages',
+                        'SaveLogoImage', 'SaveBackdropImage', 'UseOriginalTmdbResolution',
+                        'AutoDetectLogoLanguage', 'AllowAnyLanguageLogoFallback'
+                    ];
+                }
+
+                function textFieldIds() {
+                    return ['PreferredLogoLanguage'];
+                }
+
+                function numericFieldIds() {
+                    return [
+                        'MaxPosterCandidates', 'FlatnessWeight', 'ContrastWeight', 'ResolutionWeight',
+                        'FadeBandHeightPercent', 'BlurSigma', 'MaxGradientAlpha', 'GradientFeatherPercent',
+                        'LogoMaxWidthPercent', 'LogoMaxHeightPercent', 'LogoBottomMarginPercent',
+                        'MaxBackdrops', 'BackdropResolutionTierTolerance', 'BackdropRatingWeight',
+                        'BackdropVoteCountWeight'
+                    ];
+                }
+
+                document.querySelector('#PosterLogoComposerConfigPage')
+                    .addEventListener('pageshow', function () {
+                        Dashboard.showLoadingMsg();
+                        ApiClient.getPluginConfiguration(PluginConfig.UniqueId).then(function (config) {
+                            checkboxFieldIds().forEach(function (id) {
+                                document.querySelector('#' + id).checked = !!config[id];
+                            });
+                            textFieldIds().forEach(function (id) {
+                                document.querySelector('#' + id).value = config[id];
+                            });
+                            numericFieldIds().forEach(function (id) {
+                                document.querySelector('#' + id).value = config[id];
+                            });
+                            Dashboard.hideLoadingMsg();
+                        });
+                    });
+
+                document.querySelector('#PosterLogoComposerConfigForm')
+                    .addEventListener('submit', function (e) {
+                        e.preventDefault();
+                        Dashboard.showLoadingMsg();
+                        ApiClient.getPluginConfiguration(PluginConfig.UniqueId).then(function (config) {
+                            checkboxFieldIds().forEach(function (id) {
+                                config[id] = document.querySelector('#' + id).checked;
+                            });
+                            textFieldIds().forEach(function (id) {
+                                config[id] = document.querySelector('#' + id).value;
+                            });
+                            numericFieldIds().forEach(function (id) {
+                                config[id] = parseFloat(document.querySelector('#' + id).value);
+                            });
+                            ApiClient.updatePluginConfiguration(PluginConfig.UniqueId, config).then(function (result) {
+                                Dashboard.processPluginConfigurationUpdateResult(result);
+                            });
+                        });
+                        return false;
+                    });
+            })();
+        </script>
+    </div>
+</body>
+</html>

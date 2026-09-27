@@ -1,0 +1,12 @@
+/Users/julian/Dev/Projects/JellyfinImagePlugin/Jellyfin.Plugin.PosterLogoComposer/bin/Release/net9.0/Jellyfin.Plugin.PosterLogoComposer.deps.json
+/Users/julian/Dev/Projects/JellyfinImagePlugin/Jellyfin.Plugin.PosterLogoComposer/bin/Release/net9.0/Jellyfin.Plugin.PosterLogoComposer.dll
+/Users/julian/Dev/Projects/JellyfinImagePlugin/Jellyfin.Plugin.PosterLogoComposer/bin/Release/net9.0/Jellyfin.Plugin.PosterLogoComposer.pdb
+/Users/julian/Dev/Projects/JellyfinImagePlugin/Jellyfin.Plugin.PosterLogoComposer/obj/Release/net9.0/Jellyfin.Plugin.PosterLogoComposer.csproj.AssemblyReference.cache
+/Users/julian/Dev/Projects/JellyfinImagePlugin/Jellyfin.Plugin.PosterLogoComposer/obj/Release/net9.0/Jellyfin.Plugin.PosterLogoComposer.GeneratedMSBuildEditorConfig.editorconfig
+/Users/julian/Dev/Projects/JellyfinImagePlugin/Jellyfin.Plugin.PosterLogoComposer/obj/Release/net9.0/Jellyfin.Plugin.PosterLogoComposer.AssemblyInfoInputs.cache
+/Users/julian/Dev/Projects/JellyfinImagePlugin/Jellyfin.Plugin.PosterLogoComposer/obj/Release/net9.0/Jellyfin.Plugin.PosterLogoComposer.AssemblyInfo.cs
+/Users/julian/Dev/Projects/JellyfinImagePlugin/Jellyfin.Plugin.PosterLogoComposer/obj/Release/net9.0/Jellyfin.Plugin.PosterLogoComposer.csproj.CoreCompileInputs.cache
+/Users/julian/Dev/Projects/JellyfinImagePlugin/Jellyfin.Plugin.PosterLogoComposer/obj/Release/net9.0/Jellyfin.Plugin.PosterLogoComposer.dll
+/Users/julian/Dev/Projects/JellyfinImagePlugin/Jellyfin.Plugin.PosterLogoComposer/obj/Release/net9.0/refint/Jellyfin.Plugin.PosterLogoComposer.dll
+/Users/julian/Dev/Projects/JellyfinImagePlugin/Jellyfin.Plugin.PosterLogoComposer/obj/Release/net9.0/Jellyfin.Plugin.PosterLogoComposer.pdb
+/Users/julian/Dev/Projects/JellyfinImagePlugin/Jellyfin.Plugin.PosterLogoComposer/obj/Release/net9.0/ref/Jellyfin.Plugin.PosterLogoComposer.dll
