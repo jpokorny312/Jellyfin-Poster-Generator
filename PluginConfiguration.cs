@@ -97,11 +97,12 @@ public class PluginConfiguration : BasePluginConfiguration
 
     /// <summary>
     /// Gets or sets the height of the bottom band that gets blurred to make the logo stand
-    /// out, as a fraction of the poster's total height. No color/brightness change is
-    /// applied to it — only blur — so its readability against the logo depends entirely on
-    /// picking a poster whose band already has good natural contrast (see
-    /// <see cref="ContrastWeight"/>). Kept fairly small by default so the blur only touches
-    /// the bottom portion of the poster instead of a large chunk of the artwork.
+    /// out, as a fraction of the poster's total height. Readability against the logo is
+    /// primarily down to picking a poster whose band already has good natural contrast
+    /// (see <see cref="ContrastWeight"/>); see also <see cref="MinRenderContrastGap"/> for
+    /// the last-resort fallback when even the best poster falls short. Kept fairly small
+    /// by default so the blur only touches the bottom portion of the poster instead of a
+    /// large chunk of the artwork.
     /// </summary>
     public double FadeBandHeightPercent { get; set; } = 0.22;
 
@@ -116,6 +117,26 @@ public class PluginConfiguration : BasePluginConfiguration
     /// top edge, instead of an abrupt sharp-to-blurry transition.
     /// </summary>
     public double GradientFeatherPercent { get; set; } = 0.25;
+
+    /// <summary>
+    /// Gets or sets the minimum acceptable luminance gap (0-255) between the logo and the
+    /// poster band actually behind it, checked against the poster actually chosen (after
+    /// <see cref="ContrastWeight"/>-based selection already tried to pick a well-matched
+    /// one). If TMDb simply has no better-contrasting candidate for this title and the gap
+    /// still falls short, a soft backdrop is drawn — but only directly behind the logo's
+    /// own footprint, never across the whole band — to close it. Set to 0 to disable this
+    /// fallback entirely and rely purely on poster selection.
+    /// </summary>
+    public double MinRenderContrastGap { get; set; } = 70;
+
+    /// <summary>
+    /// Gets or sets the maximum opacity (0-255) of the localized backdrop drawn behind the
+    /// logo when <see cref="MinRenderContrastGap"/> isn't naturally met. Scoped tightly to
+    /// the logo's own footprint and heavily feathered, so — unlike the old whole-band tint
+    /// — it never reads as a flat rectangle over a solid-color background. Set to 0 to
+    /// disable.
+    /// </summary>
+    public int MaxLocalizedShadowAlpha { get; set; } = 180;
 
     /// <summary>
     /// Gets or sets the maximum logo width, as a fraction of the poster width.

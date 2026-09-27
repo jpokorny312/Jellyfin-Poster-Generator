@@ -16,14 +16,15 @@ the Backdrop image.
    already has against that band, so a white logo isn't matched with a poster that's too
    bright, and vice versa. Resolution is a secondary tiebreaker.
 3. Blurs the bottom band of the chosen poster, smoothly cross-fading from the sharp,
-   untouched poster above it (no hard sharp-to-blurry seam). The same rule then runs for
-   every item to decide the fade: if the logo and the band already contrast enough on their
-   own, no darkening/lightening is applied at all; otherwise the band is faded toward
-   whichever of black/white increases the gap, by just enough to reach a configurable
-   target — so a well-matched poster/logo pairing gets little to no fade, instead of a
-   fixed-strength overlay that could turn into a visible block. The logo is then centered on
-   top, scaled to fit within configurable width/height limits, and the result is saved as
-   the Primary image.
+   untouched poster above it (no hard sharp-to-blurry seam). The logo is then centered on
+   top, scaled to fit within configurable width/height limits. If the chosen poster still
+   falls short of a minimum logo/band contrast gap once actually rendered — e.g. because
+   TMDb simply has no better-contrasting candidate for this title — a soft, heavily
+   feathered backdrop is drawn as a last resort, but scoped tightly to the logo's own
+   footprint rather than the whole band, so a well-matched pairing (the common case) never
+   gets any backdrop at all, and even a poorly-matched one never turns into a flat,
+   hard-edged rectangle over a solid-color background. The result is saved as the Primary
+   image.
 4. Saves the same logo as the item's Logo image (can be turned off).
 5. Independently, fetches all TMDb backdrops and picks the one with the highest
    resolution, using community rating and vote count as a tiebreaker among similarly sized
@@ -139,6 +140,8 @@ manually deleting/copying files.
 | Fade band height | Height of the blurred band at the bottom, as a fraction of poster height. Kept fairly small by default (22%) so the blur only touches the bottom portion of the poster. |
 | Blur sigma | Strength of the Gaussian blur applied to the band. |
 | Blur feather | How much of the band is used to smoothly ramp the blur up to full strength before the logo's top edge, instead of an abrupt sharp-to-blurry transition. |
+| Minimum contrast gap | If the poster actually chosen still falls short of this luminance gap (0-255) between the logo and its band, a soft backdrop is drawn behind the logo itself (never the whole band) to close it. `0` disables this fallback. |
+| Max localized backdrop strength | Ceiling (0-255) on how strong that fallback backdrop can get. Scoped tightly to the logo's footprint and heavily feathered, so it never reads as a flat rectangle. |
 | Max logo width / height | Size limits for the logo, as fractions of poster width / poster height (independent of the fade band height — the logo may extend above the band). |
 | Logo bottom margin | Space below the logo, as a fraction of poster height. |
 | Max backdrops to keep | How many Backdrop images to keep. Existing Backdrops are replaced with up to this many best-scoring candidates every run, so the count stays fixed instead of growing forever. |

@@ -154,6 +154,24 @@
                             </div>
                         </div>
                         <div class="inputContainer">
+                            <input is="emby-input" type="number" id="MinRenderContrastGap" label="Minimum contrast gap (0-255)" min="0" max="255" step="1" />
+                            <div class="fieldDescription">
+                                If the poster actually chosen still falls short of this luminance gap between
+                                the logo and its band (e.g. because TMDb has no better-contrasting candidate
+                                for this title), a soft backdrop is drawn behind the logo itself (not the
+                                whole band) to close the gap. Set to 0 to disable and rely purely on poster
+                                selection.
+                            </div>
+                        </div>
+                        <div class="inputContainer">
+                            <input is="emby-input" type="number" id="MaxLocalizedShadowAlpha" label="Max localized backdrop strength (0-255)" min="0" max="255" step="1" />
+                            <div class="fieldDescription">
+                                Ceiling on how strong that fallback backdrop is allowed to get. It's scoped
+                                tightly to the logo's own footprint and heavily feathered, so it never reads
+                                as a flat rectangle the way a whole-band tint could.
+                            </div>
+                        </div>
+                        <div class="inputContainer">
                             <input is="emby-input" type="number" id="LogoMaxWidthPercent" label="Max logo width (0-1, fraction of poster width)" min="0" max="1" step="0.01" />
                         </div>
                         <div class="inputContainer">
@@ -239,6 +257,7 @@
                         'MinLogoWidth', 'LogoRatingWeight', 'LogoVoteCountWeight',
                         'MaxPosterCandidates', 'FlatnessWeight', 'ContrastWeight', 'ResolutionWeight',
                         'FadeBandHeightPercent', 'BlurSigma', 'GradientFeatherPercent',
+                        'MinRenderContrastGap', 'MaxLocalizedShadowAlpha',
                         'LogoMaxWidthPercent', 'LogoMaxHeightPercent', 'LogoBottomMarginPercent',
                         'MaxBackdrops', 'BackdropResolutionTierTolerance', 'BackdropRatingWeight',
                         'BackdropVoteCountWeight'

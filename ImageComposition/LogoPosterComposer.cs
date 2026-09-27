@@ -8,13 +8,14 @@ using SixLabors.ImageSharp.Processing;
 namespace Jellyfin.Plugin.PosterLogoComposer.ImageComposition;
 
 /// <summary>
-/// Composites a textless poster with a logo: the bottom band of the poster is blurred and,
-/// only as much as actually needed, faded toward black or white — whichever increases the
-/// gap between the band's brightness and the logo's own — so the logo reads clearly. The
-/// same rule runs for every item, so a poster/logo pairing that already contrasts well
-/// (helped along by <see cref="PosterScorer"/> picking a suitable poster to begin with)
-/// gets little to no fade, instead of an always-on, fixed-strength overlay that could turn
-/// into a visible, hard-edged block over an already high-contrast area.
+/// Composites a textless poster with a logo: the bottom band of the poster is blurred so
+/// the logo reads clearly. Contrast between the logo and the band is primarily handled by
+/// <see cref="PosterScorer"/> picking a poster whose band already contrasts well with this
+/// specific logo. When even the best available poster still falls short of a minimum
+/// contrast gap (e.g. because TMDb has no better-contrasting candidate for this title), a
+/// soft, heavily-feathered backdrop is drawn — but only directly behind the logo's own
+/// footprint, not across the whole band — so it never turns into the old flat, hard-edged
+/// rectangle over a large solid-color area.
 /// </summary>
 public static class LogoPosterComposer
 {
@@ -79,18 +80,109 @@ public static class LogoPosterComposer
         var bottomMargin = (int)(poster.Height * config.LogoBottomMarginPercent);
         var logoY = poster.Height - logo.Height - bottomMargin;
 
-        // 3. No color tint is added at all — the blur above is the entire "fade". A
-        // black/white overlay (even one only applied where actually needed) turned into a
-        // visible, oddly-colored block whenever the band was a flat, saturated area with no
-        // texture (e.g. a solid-color poster background), since there was nothing to blend
-        // the tint into. Getting good logo/background contrast is handled entirely by
-        // PosterScorer picking a poster whose (blurred) band already contrasts well with
-        // this specific logo, before this method ever runs.
+        // 3. Getting good logo/background contrast is primarily handled by PosterScorer
+        // picking a poster whose (blurred) band already contrasts well with this specific
+        // logo, before this method ever runs. But if TMDb simply has no better-contrasting
+        // candidate for this title, the best available poster can still fall short — so as
+        // a last resort, top up the contrast with a soft backdrop confined to the logo's
+        // own footprint (never the old whole-band tint, which looked like a flat, oddly
+        // colored rectangle over a solid-color background).
+        if (config.MinRenderContrastGap > 0 && config.MaxLocalizedShadowAlpha > 0)
+        {
+            var bandStats = PosterScorer.GetBottomBandStats(poster, config.FadeBandHeightPercent);
+            var logoLuminance = PosterScorer.GetLogoAverageLuminance(logo);
+            var actualGap = Math.Abs(bandStats.Mean - logoLuminance);
+
+            if (actualGap < config.MinRenderContrastGap)
+            {
+                // Move away from the logo's own brightness, whichever direction widens the
+                // gap — darken behind a light/white logo, lighten behind a dark logo.
+                byte fillLuminance = logoLuminance >= 128 ? (byte)0 : (byte)255;
+                var shortfall = Math.Clamp((config.MinRenderContrastGap - actualGap) / config.MinRenderContrastGap, 0.0, 1.0);
+                var alpha = (byte)Math.Clamp(shortfall * config.MaxLocalizedShadowAlpha, 0, 255);
+
+                if (alpha > 0)
+                {
+                    DrawLocalizedContrastBackdrop(poster, new Rectangle(logoX, logoY, logo.Width, logo.Height), fillLuminance, alpha);
+                }
+            }
+        }
+
         poster.Mutate(ctx => ctx.DrawImage(logo, new Point(logoX, logoY), 1f));
 
         using var output = new MemoryStream();
         poster.Save(output, new JpegEncoder { Quality = 92 });
         return output.ToArray();
+    }
+
+    /// <summary>
+    /// Draws a soft, elliptical, heavily-feathered backdrop scoped tightly to
+    /// <paramref name="logoBounds"/> (plus generous padding) — full strength directly
+    /// behind the logo, smoothly falling off to nothing by the padded edge. Unlike a
+    /// whole-band tint, this never reads as a hard-edged rectangle because it always
+    /// follows the logo's own footprint and fades out well before the band's edges.
+    /// </summary>
+    private static void DrawLocalizedContrastBackdrop(Image<Rgba32> poster, Rectangle logoBounds, byte fillLuminance, byte maxAlpha)
+    {
+        var paddingX = Math.Max(1, (int)(logoBounds.Width * 0.35));
+        var paddingY = Math.Max(1, (int)(logoBounds.Height * 0.7));
+        var centerX = logoBounds.X + (logoBounds.Width / 2.0);
+        var centerY = logoBounds.Y + (logoBounds.Height / 2.0);
+        var radiusX = (logoBounds.Width / 2.0) + paddingX;
+        var radiusY = (logoBounds.Height / 2.0) + paddingY;
+
+        var minX = Math.Max(0, (int)Math.Floor(centerX - radiusX));
+        var maxX = Math.Min(poster.Width - 1, (int)Math.Ceiling(centerX + radiusX));
+        var minY = Math.Max(0, (int)Math.Floor(centerY - radiusY));
+        var maxY = Math.Min(poster.Height - 1, (int)Math.Ceiling(centerY + radiusY));
+        if (minX > maxX || minY > maxY)
+        {
+            return;
+        }
+
+        var region = new Rectangle(minX, minY, (maxX - minX) + 1, (maxY - minY) + 1);
+        using (var regionLayer = poster.Clone(ctx => ctx.Crop(region)))
+        {
+            regionLayer.ProcessPixelRows(accessor =>
+            {
+                for (var y = 0; y < accessor.Height; y++)
+                {
+                    var absoluteY = minY + y;
+                    var dy = (absoluteY - centerY) / radiusY;
+                    var row = accessor.GetRowSpan(y);
+                    for (var x = 0; x < row.Length; x++)
+                    {
+                        var absoluteX = minX + x;
+                        var dx = (absoluteX - centerX) / radiusX;
+                        var normalizedDistance = Math.Sqrt((dx * dx) + (dy * dy));
+                        if (normalizedDistance >= 1.0)
+                        {
+                            continue;
+                        }
+
+                        var t = 1.0 - SmoothstepUnit(normalizedDistance);
+                        var alpha = t * maxAlpha / 255.0;
+                        var p = row[x];
+                        row[x] = new Rgba32(
+                            (byte)Math.Clamp((p.R * (1 - alpha)) + (fillLuminance * alpha), 0, 255),
+                            (byte)Math.Clamp((p.G * (1 - alpha)) + (fillLuminance * alpha), 0, 255),
+                            (byte)Math.Clamp((p.B * (1 - alpha)) + (fillLuminance * alpha), 0, 255),
+                            p.A);
+                    }
+                }
+            });
+
+            poster.Mutate(ctx => ctx.DrawImage(regionLayer, new Point(minX, minY), 1f));
+        }
+    }
+
+    /// <summary>
+    /// Smoothstep eased falloff for a value already normalized to [0, 1].
+    /// </summary>
+    private static double SmoothstepUnit(double t)
+    {
+        t = Math.Clamp(t, 0.0, 1.0);
+        return t * t * (3 - (2 * t));
     }
 
     /// <summary>
